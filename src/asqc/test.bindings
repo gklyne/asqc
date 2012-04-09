@@ -1,0 +1,16 @@
+{ "head": { "vars": [ "a", "b", "c", "d", "e" ] }
+, "results":
+  { "bindings":
+    [ { "a": { "type": "uri",           "value": "http://example.org/a1" }
+      , "b": { "type": "bnode",         "value": "b1" }
+      , "c": { "type": "literal",       "value": "lit-c1" }
+      , "d": { "type": "typed-literal", "value": "1", "datatype": "http://www.w3.org/2001/XMLSchema#integer" }
+      , "e": { "type": "literal",       "value": "lit-c1", "xml:lang": "en" }
+      }
+    , { "a": { "type": "uri",           "value": "http://example.org/a2" }
+      , "b": { "type": "bnode",         "value": "b2" }
+      , "c": { "type": "literal",       "value": "lit-c2" }
+      }
+    ]
+  }
+}
