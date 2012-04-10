@@ -31,9 +31,42 @@ log = logging.getLogger(__name__)
 class asqc_settings(object):
     VERSION = "v0.1"
 
-# Make sure MiscLib can be found on path
+# Make sure support libraries can be found on path
 if __name__ == "__main__":
     sys.path.append(os.path.join(sys.path[0],".."))
+
+# Helper functions for JSON formatting
+# Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
+
+def termToJSON(term): 
+    if isinstance(term, URIRef): 
+        return { 'type': 'uri', 'value': str(term) }
+    elif isinstance(term, Literal):
+        if term.datatype!=None:
+            return { 'type': 'typed-literal', 
+                     'value': unicode(term), 
+                     'datatype': str(term.datatype) }
+        else:
+            r={'type': 'literal',
+               'value': unicode(term) }
+            if term.language!=None:
+                r['xml:lang']=term.language
+            return r
+    elif isinstance(term, BNode):
+        return { 'type': 'bnode', 'value': str(term) }
+    elif term==None: 
+        return None
+    else: 
+        raise ResultException('Unknown term type: %s (%s)'%(term, type(term)))
+
+def bindingToJSON(binding):
+    res={}
+    for var in binding: 
+        t = termToJSON(binding[var])
+        if t != None: res[var] = t
+    return res
+
+# Helper functions for accessing data at URI reference, which may be a path relative to current directory
 
 def resolveUri(uriref, base, path=""):
     """
@@ -68,6 +101,8 @@ def testRetrieveUri():
            retrieveUri("http://example.org/nosuchdata")
     assert retrieveUri("http://nohost.example.org/nosuchdata") == None, retrieveUri("http://nohost.example.org/nosuchdata")
     return
+
+# Main program functions
 
 def getQuery(options, args):
     """
@@ -172,7 +207,7 @@ def testGetBindings():
         """
     defaultBindings = (
         { "head":    { "vars": [] }
-        , "results": { "bindings": [] }
+        , "results": { "bindings": [{}] }
         })
     #
     options  = testOptions()
@@ -279,13 +314,44 @@ def testGetRdfData():
 
 def queryRdfData(progname, options, prefixes, query, bindings):
     """
-    Assemble RDF data files 
+    Submit query against RDF data.
+    Result is dictionary/listy strcuture suitable for JSON encoding.
     """
     rdfgraph = getRdfData(options)
     if not rdfgraph:
         print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
         return (2, None)
-    return (status, result)
+        query = prefixes + query
+        resps = []
+        for b in bindings['results']['bindings']:
+            bq = {}
+            for k in b.keys():
+                bq['?'+k] = b[k]
+            resp = self.rdfgraph.query(query, initBindings=bq)
+            resps.append(resp)
+        res = { "head": {} }
+        if resps[0].type == 'ASK':
+            res["boolean"] = any([ r.askAnswer for r in resps ])
+            return (0, res)
+        elif resps[0].type == 'SELECT':
+            res["head"]["vars"] = resps[0].vars
+            res["results"] = {}
+            res["results"]["bindings"] = [ bindingToJSON(b) for r in resps for b in r.bindings ]
+            return (0, res)
+        elif resps[0].type == 'CONSTRUCT':
+            assert False, "@@TODO"
+        else:
+            assert False, "Unexpected query response type %s"%resp.type
+        return (2, None)
+
+def testQueryRdfData():
+    #######
+    return
+
+def outputResult(progname, options, result):
+    # @@TODO alternative formats
+    sys.stdout.write(json.dumps(result))
+    return
 
 def run(configbase, options, args):
     status   = 0
