@@ -20,6 +20,12 @@ import logging
 from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
 
+if __name__ == "__main__":
+    progdir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
+
+import rdflib
+
 log = logging.getLogger(__name__)
 
 class asqc_settings(object):
@@ -220,6 +226,67 @@ def testGetBindings():
     assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
     return
 
+def getRdfData(options):
+    """
+    Reads RDF data from files specified using -r or from stdin
+    """
+    if not options.rdf_data:
+        options.rdf_data = ['-']
+    rdfgraph = rdflib.Graph()
+    for r in options.rdf_data:
+        if r == "-":
+            rdftext = sys.stdin.read()
+        else:
+            rdftext = retrieveUri(r)
+        try:
+            rdfgraph.parse(data=rdftext)
+        except Exception, e:
+            return None
+    return rdfgraph
+
+def testGetRdfData():
+    class testOptions(object):
+        rdf_data = None
+    testRdfData = """<?xml version="1.0" encoding="UTF-8"?>
+        <rdf:RDF
+          xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+          xmlns:rdfs='http://www.w3.org/2000/01/rdf-schema#'
+        >
+          <rdf:Description>
+            <rdfs:label>Example</rdfs:label>
+            <rdfs:comment>This is really just an example.</rdfs:comment>
+          </rdf:Description>
+        </rdf:RDF>
+        """
+    #
+    options = testOptions()
+    inpstr   = StringIO.StringIO(testRdfData)
+    with SwitchStdin(inpstr):
+        rdfgraph = getRdfData(options)
+        assert len(rdfgraph) == 2
+    #
+    options = testOptions()
+    options.rdf_data = ["test.rdf"]
+    rdfgraph = getRdfData(options)
+    assert len(rdfgraph) == 2
+    #
+    options = testOptions()
+    options.rdf_data = ["nosuchfile.rdf"]
+    rdfgraph = getRdfData(options)
+    assert rdfgraph == None
+    #
+    return
+
+def queryRdfData(progname, options, prefixes, query, bindings):
+    """
+    Assemble RDF data files 
+    """
+    rdfgraph = getRdfData(options)
+    if not rdfgraph:
+        print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
+        return (2, None)
+    return (status, result)
+
 def run(configbase, options, args):
     status   = 0
     progname = os.path.basename(args[0])
@@ -332,6 +399,7 @@ if __name__ == "__main__":
     testGetQuery()
     testGetPrefixes()
     testGetBindings()
+    testGetRdfData()
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)
