@@ -25,6 +25,13 @@ if __name__ == "__main__":
     sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
 
 import rdflib
+# Set up to use SPARQL
+rdflib.plugin.register(
+    'sparql', rdflib.query.Processor,
+    'rdfextras.sparql.processor', 'Processor')
+rdflib.plugin.register(
+    'sparql', rdflib.query.Result,
+    'rdfextras.sparql.query', 'SPARQLQueryResult')
 
 log = logging.getLogger(__name__)
 
@@ -39,9 +46,9 @@ if __name__ == "__main__":
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
 
 def termToJSON(term): 
-    if isinstance(term, URIRef): 
+    if isinstance(term, rdflib.URIRef): 
         return { 'type': 'uri', 'value': str(term) }
-    elif isinstance(term, Literal):
+    elif isinstance(term, rdflib.Literal):
         if term.datatype!=None:
             return { 'type': 'typed-literal', 
                      'value': unicode(term), 
@@ -52,12 +59,12 @@ def termToJSON(term):
             if term.language!=None:
                 r['xml:lang']=term.language
             return r
-    elif isinstance(term, BNode):
+    elif isinstance(term, rdflib.BNode):
         return { 'type': 'bnode', 'value': str(term) }
     elif term==None: 
         return None
     else: 
-        raise ResultException('Unknown term type: %s (%s)'%(term, type(term)))
+        raise rdflib.query.ResultException('Unknown term type: %s (%s)'%(term, type(term)))
 
 def bindingToJSON(binding):
     res={}
@@ -321,31 +328,66 @@ def queryRdfData(progname, options, prefixes, query, bindings):
     if not rdfgraph:
         print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
         return (2, None)
-        query = prefixes + query
-        resps = []
-        for b in bindings['results']['bindings']:
-            bq = {}
-            for k in b.keys():
-                bq['?'+k] = b[k]
-            resp = self.rdfgraph.query(query, initBindings=bq)
-            resps.append(resp)
-        res = { "head": {} }
-        if resps[0].type == 'ASK':
-            res["boolean"] = any([ r.askAnswer for r in resps ])
-            return (0, res)
-        elif resps[0].type == 'SELECT':
-            res["head"]["vars"] = resps[0].vars
-            res["results"] = {}
-            res["results"]["bindings"] = [ bindingToJSON(b) for r in resps for b in r.bindings ]
-            return (0, res)
-        elif resps[0].type == 'CONSTRUCT':
-            assert False, "@@TODO"
-        else:
-            assert False, "Unexpected query response type %s"%resp.type
-        return (2, None)
+    query = prefixes + query
+    resps = []
+    for b in bindings['results']['bindings']:
+        resp = rdfgraph.query(query, initBindings=b)
+        resps.append(resp)
+    res = { "head": {} }
+    if resps[0].type == 'ASK':
+        res["boolean"] = any([ r.askAnswer for r in resps ])
+        return (0, res)
+    elif resps[0].type == 'SELECT':
+        res["head"]["vars"] = resps[0].vars
+        res["results"] = {}
+        res["results"]["bindings"] = [ bindingToJSON(b) for r in resps for b in r.bindings ]
+        return (0, res)
+    elif resps[0].type == 'CONSTRUCT':
+        assert False, "@@TODO"
+    else:
+        assert False, "Unexpected query response type %s"%resp.type
+    return (2, None)
 
 def testQueryRdfData():
-    #######
+    class testOptions(object):
+        rdf_data = ["test1.rdf", "test2.rdf"]
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    query    = "SELECT * WHERE { ?s ?p ?o }"
+    bindings = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': rdflib.URIRef("http://example.org/test#s1")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s2")
+                  , 'o': rdflib.URIRef("http://example.org/test#o4")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s3")
+                  , 'p': rdflib.URIRef("http://example.org/test#p5")
+                  }
+                ]
+              }
+            })
+    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
+    assert len(result["results"]["bindings"]) == 4
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
+           } in result["results"]["bindings"]
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
+           } in result["results"]["bindings"]
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
+           } in result["results"]["bindings"]
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
+           } in result["results"]["bindings"]
     return
 
 def outputResult(progname, options, result):
@@ -460,12 +502,13 @@ if __name__ == "__main__":
     Program invoked from the command line.
     """
     # tests...
-    testResolveUri()
-    testRetrieveUri()
-    testGetQuery()
-    testGetPrefixes()
-    testGetBindings()
-    testGetRdfData()
+    #testResolveUri()
+    #testRetrieveUri()
+    #testGetQuery()
+    #testGetPrefixes()
+    #testGetBindings()
+    #testGetRdfData()
+    testQueryRdfData()
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)
