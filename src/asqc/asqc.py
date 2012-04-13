@@ -33,6 +33,10 @@ rdflib.plugin.register(
     'sparql', rdflib.query.Result,
     'rdfextras.sparql.query', 'SPARQLQueryResult')
 
+# Helper methods from SPARQL code
+from rdfextras.sparql.results import jsonresults
+
+# Logging object
 log = logging.getLogger(__name__)
 
 class asqc_settings(object):
@@ -42,7 +46,7 @@ class asqc_settings(object):
 if __name__ == "__main__":
     sys.path.append(os.path.join(sys.path[0],".."))
 
-# Helper functions for JSON formatting
+# Helper functions for JSON formatting and parsing
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
 
 def termToJSON(term): 
@@ -72,6 +76,29 @@ def bindingToJSON(binding):
         t = termToJSON(binding[var])
         if t != None: res[var] = t
     return res
+
+def parseJsonTerm(d):
+    """rdflib object (Literal, URIRef, BNode) for the given json-format dict.
+    
+    input is like:
+      { 'type': 'uri', 'value': 'http://famegame.com/2006/01/username' }
+      { 'type': 'literal', 'value': 'drewp' }
+    """
+    
+    t = d['type']
+    if t == 'uri':
+        return rdflib.URIRef(d['value'])
+    elif t == 'literal':
+        if 'xml:lang' in d: 
+            return rdflib.Literal(d['value'], lang=d['xml:lang'])
+        return rdflib.Literal(d['value'])
+    elif t == 'typed-literal':
+        return rdflib.Literal(d['value'], datatype=rdflib.URIRef(d['datatype']))
+    elif t == 'bnode': 
+        return rdflib.BNode(d['value'])
+    else:
+        raise NotImplementedError("json term type %r" % t)
+
 
 # Helper functions for accessing data at URI reference, which may be a path relative to current directory
 
@@ -174,7 +201,7 @@ def getBindings(options):
     bndtext  = None
     bindings = (
         { "head":    { "vars": [] }
-        , "results": { "bindings": [] }
+        , "results": { "bindings": [{}] }
         })
     if options.bindings and options.bindings != "-":
         bndtext = retrieveUri(options.bindings)
@@ -184,7 +211,14 @@ def getBindings(options):
         return None
     if bndtext:
         try:
-            bindings  = json.loads(bndtext)
+            bindings    = json.loads(bndtext)
+            newbindings = []
+            for row in bindings['results']['bindings']:
+                outRow = {}
+                for k, v in row.items():
+                    outRow[k] = parseJsonTerm(v)
+                newbindings.append(outRow)
+            bindings['results']['bindings'] = newbindings
         except Exception as e:
             bindings = None
     return bindings
@@ -194,6 +228,10 @@ def testGetBindings():
         rdf_data = None
         bindings = None
         endpoint = None
+    defaultBindings = (
+        { "head":    { "vars": [] }
+        , "results": { "bindings": [{}] }
+        })
     testBindings = """
         { "head": { "vars": [ "a", "b", "c", "d", "e" ] }
         , "results":
@@ -212,10 +250,28 @@ def testGetBindings():
           }
         }
         """
-    defaultBindings = (
-        { "head":    { "vars": [] }
-        , "results": { "bindings": [{}] }
-        })
+    def checkBindings(bindings):
+        xsdint = "http://www.w3.org/2001/XMLSchema#integer"
+        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
+        assert bindings['results']['bindings'][0]['a'] == rdflib.URIRef("http://example.org/a1")
+        assert bindings['results']['bindings'][0]['b'] == rdflib.BNode("b1")
+        assert bindings['results']['bindings'][0]['c'] == rdflib.Literal("lit-c1")
+        assert bindings['results']['bindings'][0]['d'] == rdflib.Literal("1", datatype=xsdint)
+        assert bindings['results']['bindings'][0]['e'] == rdflib.Literal("lit-c1", lang="en")
+        assert bindings['results']['bindings'][1]['a'] == rdflib.URIRef("http://example.org/a2")
+        assert bindings['results']['bindings'][1]['b'] == rdflib.BNode("b2")
+        assert bindings['results']['bindings'][1]['c'] == rdflib.Literal("lit-c2")
+    def checkBindingsJSON(bindings):
+        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
+        assert bindings['results']['bindings'][0]['a'] == { 'type': "uri",           'value': "http://example.org/a1" }
+        assert bindings['results']['bindings'][0]['b'] == { 'type': "bnode",         'value': "b1" }
+        assert bindings['results']['bindings'][0]['c'] == { 'type': "literal",       'value': "lit-c1" }
+        assert bindings['results']['bindings'][0]['d'] == { 'type': "typed-literal", 'value': "1"
+                                                          , 'datatype': "http://www.w3.org/2001/XMLSchema#integer" }
+        assert bindings['results']['bindings'][0]['e'] == { 'type': "literal",       'value': "lit-c1", 'xml:lang': "en" }
+        assert bindings['results']['bindings'][1]['a'] == { 'type': "uri",           'value': "http://example.org/a2" }
+        assert bindings['results']['bindings'][1]['b'] == { 'type': "bnode",         'value': "b2" }
+        assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
     #
     options  = testOptions()
     inpstr   = StringIO.StringIO(testBindings)
@@ -227,45 +283,18 @@ def testGetBindings():
     inpstr   = StringIO.StringIO(testBindings)
     with SwitchStdin(inpstr):
         bindings = getBindings(options)
-        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
-        assert bindings['results']['bindings'][0]['a'] == { 'type': "uri",           'value': "http://example.org/a1" }
-        assert bindings['results']['bindings'][0]['b'] == { 'type': "bnode",         'value': "b1" }
-        assert bindings['results']['bindings'][0]['c'] == { 'type': "literal",       'value': "lit-c1" }
-        assert bindings['results']['bindings'][0]['d'] == { 'type': "typed-literal", 'value': "1"
-                                                          , 'datatype': "http://www.w3.org/2001/XMLSchema#integer" }
-        assert bindings['results']['bindings'][0]['e'] == { 'type': "literal",       'value': "lit-c1", 'xml:lang': "en" }
-        assert bindings['results']['bindings'][1]['a'] == { 'type': "uri",           'value': "http://example.org/a2" }
-        assert bindings['results']['bindings'][1]['b'] == { 'type': "bnode",         'value': "b2" }
-        assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
+        checkBindings(bindings)
     #
     options = testOptions()
     options.endpoint = "http://example.org/"
     inpstr   = StringIO.StringIO(testBindings)
     with SwitchStdin(inpstr):
         bindings = getBindings(options)
-        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
-        assert bindings['results']['bindings'][0]['a'] == { 'type': "uri",           'value': "http://example.org/a1" }
-        assert bindings['results']['bindings'][0]['b'] == { 'type': "bnode",         'value': "b1" }
-        assert bindings['results']['bindings'][0]['c'] == { 'type': "literal",       'value': "lit-c1" }
-        assert bindings['results']['bindings'][0]['d'] == { 'type': "typed-literal", 'value': "1"
-                                                          , 'datatype': "http://www.w3.org/2001/XMLSchema#integer" }
-        assert bindings['results']['bindings'][0]['e'] == { 'type': "literal",       'value': "lit-c1", 'xml:lang': "en" }
-        assert bindings['results']['bindings'][1]['a'] == { 'type': "uri",           'value': "http://example.org/a2" }
-        assert bindings['results']['bindings'][1]['b'] == { 'type': "bnode",         'value': "b2" }
-        assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
+        checkBindings(bindings)
     #
     options.bindings = "test.bindings"
     bindings = getBindings(options)
-    assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
-    assert bindings['results']['bindings'][0]['a'] == { 'type': "uri",           'value': "http://example.org/a1" }
-    assert bindings['results']['bindings'][0]['b'] == { 'type': "bnode",         'value': "b1" }
-    assert bindings['results']['bindings'][0]['c'] == { 'type': "literal",       'value': "lit-c1" }
-    assert bindings['results']['bindings'][0]['d'] == { 'type': "typed-literal", 'value': "1"
-                                                      , 'datatype': "http://www.w3.org/2001/XMLSchema#integer" }
-    assert bindings['results']['bindings'][0]['e'] == { 'type': "literal",       'value': "lit-c1", 'xml:lang': "en" }
-    assert bindings['results']['bindings'][1]['a'] == { 'type': "uri",           'value': "http://example.org/a2" }
-    assert bindings['results']['bindings'][1]['b'] == { 'type': "bnode",         'value': "b2" }
-    assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
+    checkBindings(bindings)
     return
 
 def getRdfData(options):
@@ -371,23 +400,23 @@ def testQueryRdfData():
               }
             })
     (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
-    assert len(result["results"]["bindings"]) == 4
+    assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-           } in result["results"]["bindings"]
+           } in result["results"]["bindings"], "queryRdfData result 1"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
-           } in result["results"]["bindings"]
+           } in result["results"]["bindings"], "queryRdfData result 2"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
-           } in result["results"]["bindings"]
+           } in result["results"]["bindings"], "queryRdfData result 3"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
-           } in result["results"]["bindings"]
+           } in result["results"]["bindings"], "queryRdfData result 4"
     return
 
 def outputResult(progname, options, result):
@@ -506,7 +535,7 @@ if __name__ == "__main__":
     #testRetrieveUri()
     #testGetQuery()
     #testGetPrefixes()
-    #testGetBindings()
+    testGetBindings()
     #testGetRdfData()
     testQueryRdfData()
     # main program
