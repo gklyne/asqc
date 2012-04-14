@@ -12,10 +12,12 @@ import urllib
 import urllib2
 import StringIO
 import json
-#import re
+import re
 #import codecs
 import optparse
 import logging
+
+from SparqlHttpClient import SparqlHttpClient
 
 from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
@@ -134,6 +136,53 @@ def testRetrieveUri():
     assert "<title>IANA &mdash; Example domains</title>" in retrieveUri("http://example.org/nosuchdata"), \
            retrieveUri("http://example.org/nosuchdata")
     assert retrieveUri("http://nohost.example.org/nosuchdata") == None, retrieveUri("http://nohost.example.org/nosuchdata")
+    return
+
+# Helper function for determining type of query
+
+def queryType(query):
+    """
+    Returns "ASK", "SELECT", "CONSTRUCT", "DESCRIBE" or None
+    """
+    iriregex    = "<[^>]*>"
+    baseregex   = ".*base.*"+iriregex
+    prefixregex = ".*prefix.*"+iriregex
+    queryregex  = "^("+baseregex+")?("+prefixregex+")*.*(ask|select|construct|describe).*$"
+    match = re.match(queryregex, query, flags=re.IGNORECASE|re.DOTALL)
+    if match:
+        return match.group(3).upper()
+    return None
+
+def testQueryType():
+    q1 = """
+        prefix foo: <http://example.org/foo#>
+        ask { ?s ?p ?o }
+        """
+    assert queryType(q1) == "ASK"
+    q2 = """
+        base <http://example.org/base#>
+        prefix foo: <http://example.org/foo#>
+        SELECT * WHERE { ?s ?p ?o }
+        """
+    assert queryType(q2) == "SELECT"
+    q3 = """
+        prefix foo: <http://example.org/foo#>
+        prefix bar: <http://example.org/bar#>
+        construct { ?s ?p ?o }
+        """
+    assert queryType(q3) == "CONSTRUCT"
+    q4 = """
+        prefix foo: <http://example.org/foo#>
+        prefix ask: <http://example.org/ask#>
+        DeScRiBe ?s where { ?s ?p ?o }
+        """
+    assert queryType(q4) == "DESCRIBE"
+    q5 = """
+        prefix foo: <http://example.org/foo#>
+        prefix bar: <http://example.org/bar#>
+        noquery { ?s ?p ?o }
+        """
+    assert queryType(q5) == None
     return
 
 # Main program functions
@@ -419,6 +468,64 @@ def testQueryRdfData():
            } in result["results"]["bindings"], "queryRdfData result 4"
     return
 
+def querySparqlEndpoint(progname, options, prefixes, query, bindings):
+    sc = SparqlHttpClient(endpointuri=options.endpoint)
+    # need to know query type for accept result...
+    ((status, reason), result) = sc.doQueryPOST(query, accept="application/RDF+XML, application/JSON", JSON=False)
+
+
+
+
+
+
+
+    return
+
+def testQuerySparqlEndpoint():
+    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
+    # containing the contents of files test1.rdf and test2.rdf.
+    # (I use Jena Fuseki with default settings for testing.)
+    class testOptions(object):
+        endpoint = "http://localhost:3030/ds/query"
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    query    = "SELECT * WHERE { ?s ?p ?o }"
+    bindings = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': rdflib.URIRef("http://example.org/test#s1")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s2")
+                  , 'o': rdflib.URIRef("http://example.org/test#o4")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s3")
+                  , 'p': rdflib.URIRef("http://example.org/test#p5")
+                  }
+                ]
+              }
+            })
+    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, bindings)
+    assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
+           } in result["results"]["bindings"], "queryRdfData result 1"
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
+           } in result["results"]["bindings"], "queryRdfData result 2"
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
+           } in result["results"]["bindings"], "queryRdfData result 3"
+    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
+           , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
+           , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
+           } in result["results"]["bindings"], "queryRdfData result 4"
+    return
+
 def outputResult(progname, options, result):
     # @@TODO alternative formats
     sys.stdout.write(json.dumps(result))
@@ -440,7 +547,7 @@ def run(configbase, options, args):
         print "%s: Could not determine incoming variable bindings"%progname
         return 2
     if option.endpoint:
-        (status,result) = queryEndpoint(progname, options, prefixes, query, bindings)
+        (status,result) = querySparqlEndpoint(progname, options, prefixes, query, bindings)
     else:
         (status,result) = queryRdfData(progname, options, prefixes, query, bindings)
     if result:
@@ -533,6 +640,7 @@ if __name__ == "__main__":
     # tests...
     #testResolveUri()
     #testRetrieveUri()
+    testQueryType()
     #testGetQuery()
     #testGetPrefixes()
     testGetBindings()
