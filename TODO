@@ -1,8 +1,7 @@
 asqc TODO
 
-SPARQL endpoint query and binding analysis
-(Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
 Implement outputResult properly to generate real JSON or RDF data
+(Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
 Alternative RDF formats
 Alternative binding formats
 Factor out tests to separate test suite

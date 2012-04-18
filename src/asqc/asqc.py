@@ -250,10 +250,10 @@ def getPrefixes(options):
         PREFIX rdfs:       <http://www.w3.org/2000/01/rdf-schema#>
         PREFIX owl:        <http://www.w3.org/2002/07/owl#>
         PREFIX xsd:        <http://www.w3.org/2001/XMLSchema#>
-        PREFIX xml:        <http://www.w3.org/XML/1998/namespace>
         PREFIX dcterms:    <http://purl.org/dc/terms/>
         PREFIX foaf:       <http://xmlns.com/foaf/0.1/>
         """
+    #    PREFIX xml:        <http://www.w3.org/XML/1998/namespace>
     configbase = os.path.expanduser("~")
     prefixUri  = options.prefix or resolveUri(".asqc-prefixes", "file://", configbase)
     prefixes   = retrieveUri(prefixUri)
@@ -495,6 +495,12 @@ def testQueryRdfData():
     return
 
 def querySparqlEndpoint(progname, options, prefixes, query, bindings):
+    """
+    Issue SPARQL query to SPARQL HTTP endpoint.
+    Requests either JSON or RDF/XML depending on query type.
+    Returns JSON-like dictionary/list structure or RDF graph, depending on query type.
+    These are used as basis for result formatting by outputResult function
+    """
     query = prefixes + query
     resulttype = "application/RDF+XML"
     resultjson = False
@@ -518,13 +524,19 @@ def querySparqlEndpoint(progname, options, prefixes, query, bindings):
     elif bindings:
         assert False, "Can't use supplied bindings with endpoint query other than SELECT"
     elif querytype == "ASK":
-        # Assemble ASK response {'head': {}, 'boolean': <true-or-false>}
         # Just return JSON from Sparql query
         if result['boolean']: status = 0
     else:
         # return RDF
-        # @@TODO parse and return RDF graph; also needs outputResult to format same
-        pass # return RDF text
+        rdfgraph = rdflib.Graph()
+        try:
+            # Note: declaring xml prefix in SPAQL query can result in invalid XML from Fuseki (v2.1)
+            # See: https://issues.apache.org/jira/browse/JENA-24
+            rdfgraph.parse(data=result)
+            result = rdfgraph   # Return parsed RDF graph
+            if len(result) > 0: status = 0
+        except Exception, e:
+            assert False, "Error parsing RDF from SPARQL endpoint query: "+str(e)
     return (status, result)
 
 def testQuerySparqlEndpointSelect():
@@ -591,6 +603,27 @@ def testQuerySparqlEndpointAsk():
     assert result == {'head': {}, 'boolean': False}
     return
 
+def testQuerySparqlEndpointConstruct():
+    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
+    # containing the contents of files test1.rdf and test2.rdf.
+    # (I use Jena Fuseki with default settings for testing.)
+    class testOptions(object):
+        endpoint = "http://localhost:3030/ds/query"
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    query    = "CONSTRUCT { ex:s1 ?p ?o } WHERE { ex:s1 ?p ?o }"
+    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
+    assert status == 0, "Construct success status"
+    assert len(result) == 2
+    assert ( rdflib.URIRef("http://example.org/test#s1"),
+             rdflib.URIRef("http://example.org/test#p1"),
+             rdflib.URIRef("http://example.org/test#o1") ) in result
+    query    = "CONSTRUCT { ex:notfound ?p ?o } WHERE { ex:notfound ?p ?o }"
+    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
+    assert status == 1, "Construct not found status"
+    return
+
 def outputResult(progname, options, result):
     # @@TODO alternative formats
     # Look to type of supplied value:  if string, write it, if JSON, format-and-write
@@ -649,9 +682,10 @@ def parseCommandArgs(argv):
     parser.add_option("-b", "--bindings",
                       dest="bindings",
                       default=None,
-                      help="URI or filename of resource containing query variable bindings "+
+                      help="URI or filename of resource containing incoming query variable bindings "+
                            "(default stdin or none). "+
-                           "Specify '-' to use stdin.")
+                           "Specify '-' to use stdin. "+
+                           "This option works for SELECT queries only when accessing a SPARQL endpoint.")
     parser.add_option("-r", "--rdf-input",
                       action="append",
                       dest="rdf_data",
@@ -716,6 +750,7 @@ if __name__ == "__main__":
     testQueryRdfData()
     testQuerySparqlEndpointSelect() # Needs fuseki running with test data
     testQuerySparqlEndpointAsk() # Needs fuseki running with test data
+    testQuerySparqlEndpointConstruct() # Needs fuseki running with test data
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)

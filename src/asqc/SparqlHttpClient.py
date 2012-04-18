@@ -45,6 +45,7 @@ class SparqlHttpClient(object):
         """
         Issue SPARQL query as HTTP GET request.
         """
+        ###print "---- query "+query
         reqheaders   = {
             "Accept":       accept
             }
@@ -56,8 +57,8 @@ class SparqlHttpClient(object):
         reason = response.reason
         responsedata = response.read()
         hc.close()
+        ###print "---- responsedata "+responsedata
         if JSON:
-            print "---- responsedata "+responsedata
             responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 
@@ -65,6 +66,7 @@ class SparqlHttpClient(object):
         """
         Issue SPARQL query as HTTP POST request.
         """
+        ###print "---- query "+query
         reqheaders   = {
             "Content-type": "application/x-www-form-urlencoded",
             "Accept":       accept
@@ -77,8 +79,8 @@ class SparqlHttpClient(object):
         reason = response.reason
         responsedata = response.read()
         hc.close()
+        ###print "---- responsedata "+responsedata
         if JSON:
-            print "---- responsedata "+responsedata
             responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 
