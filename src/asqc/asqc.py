@@ -101,6 +101,38 @@ def parseJsonTerm(d):
     else:
         raise NotImplementedError("json term type %r" % t)
 
+def parseJsonBindings(bindings):
+    newbindings = []
+    for row in bindings:
+        outRow = {}
+        for k, v in row.items():
+            outRow[k] = parseJsonTerm(v)
+        newbindings.append(outRow)
+    return newbindings
+
+# Helper functions to form join(?) of mutiple binding sets
+
+def joinBinding(result_binding, constraint_binding):
+    for k in result_binding:
+        if k in constraint_binding:
+            if result_binding[k] != constraint_binding[k]:
+                return None
+    joined_binding = result_binding.copy()
+    ###print "**joined_binding**"+repr(joined_binding)
+    ###print "**constraint_binding**"+repr(constraint_binding)    
+    joined_binding.update(constraint_binding)
+    ###print "**joined_binding**"+repr(joined_binding)
+    return joined_binding
+
+def joinBindings(result_bindings, constraint_bindings):
+    return [ bj 
+             for bj in [ joinBinding(b1, b2) for b1 in result_bindings for b2 in constraint_bindings ]
+             if bj ]
+
+def joinBindingsToJSON(result_bindings, constraint_bindings):
+    return [ bindingToJSON(bj) 
+             for bj in [ joinBinding(b1, b2) for b1 in result_bindings for b2 in constraint_bindings ]
+             if bj ]
 
 # Helper functions for accessing data at URI reference, which may be a path relative to current directory
 
@@ -260,14 +292,8 @@ def getBindings(options):
         return None
     if bndtext:
         try:
-            bindings    = json.loads(bndtext)
-            newbindings = []
-            for row in bindings['results']['bindings']:
-                outRow = {}
-                for k, v in row.items():
-                    outRow[k] = parseJsonTerm(v)
-                newbindings.append(outRow)
-            bindings['results']['bindings'] = newbindings
+            bindings = json.loads(bndtext)
+            bindings['results']['bindings'] = parseJsonBindings(bindings['results']['bindings'])
         except Exception as e:
             bindings = None
     return bindings
@@ -469,19 +495,39 @@ def testQueryRdfData():
     return
 
 def querySparqlEndpoint(progname, options, prefixes, query, bindings):
+    query = prefixes + query
+    resulttype = "application/RDF+XML"
+    resultjson = False
+    querytype  = queryType(query) 
+    if querytype in ["ASK", "SELECT"]:
+        # NOTE application/json doesn't work with Fuseki
+        # See: http://gearon.blogspot.co.uk/2011/09/sparql-json-after-commenting-other-day.html
+        resulttype = "application/sparql-results+json"
+        resultjson = True
     sc = SparqlHttpClient(endpointuri=options.endpoint)
-    # need to know query type for accept result...
-    ((status, reason), result) = sc.doQueryPOST(query, accept="application/RDF+XML, application/JSON", JSON=False)
+    ((status, reason), result) = sc.doQueryPOST(query, accept=resulttype, JSON=resultjson)
+    if status != 200:
+        assert False, "Error from SPARQL query request: %i %s"%(status, reason)
+    status = 1
+    if querytype == "SELECT":
+        result['results']['bindings'] = parseJsonBindings(result['results']['bindings'])
+        result['results']['bindings'] = joinBindingsToJSON(
+                                            result['results']['bindings'], 
+                                            bindings['results']['bindings'])
+        if result['results']['bindings']: status = 0
+    elif bindings:
+        assert False, "Can't use supplied bindings with endpoint query other than SELECT"
+    elif querytype == "ASK":
+        # Assemble ASK response {'head': {}, 'boolean': <true-or-false>}
+        # Just return JSON from Sparql query
+        if result['boolean']: status = 0
+    else:
+        # return RDF
+        # @@TODO parse and return RDF graph; also needs outputResult to format same
+        pass # return RDF text
+    return (status, result)
 
-
-
-
-
-
-
-    return
-
-def testQuerySparqlEndpoint():
+def testQuerySparqlEndpointSelect():
     # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
     # containing the contents of files test1.rdf and test2.rdf.
     # (I use Jena Fuseki with default settings for testing.)
@@ -507,27 +553,49 @@ def testQuerySparqlEndpoint():
               }
             })
     (status,result)   = querySparqlEndpoint("test", options, prefixes, query, bindings)
-    assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
+    assert len(result["results"]["bindings"]) == 4, "querySparqlEndpoint result count"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-           } in result["results"]["bindings"], "queryRdfData result 1"
+           } in result["results"]["bindings"], "querySparqlEndpoint result 1"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
-           } in result["results"]["bindings"], "queryRdfData result 2"
+           } in result["results"]["bindings"], "querySparqlEndpoint result 2"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
-           } in result["results"]["bindings"], "queryRdfData result 3"
+           } in result["results"]["bindings"], "querySparqlEndpoint result 3"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
-           } in result["results"]["bindings"], "queryRdfData result 4"
+           } in result["results"]["bindings"], "querySparqlEndpoint result 4"
+    return
+
+def testQuerySparqlEndpointAsk():
+    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
+    # containing the contents of files test1.rdf and test2.rdf.
+    # (I use Jena Fuseki with default settings for testing.)
+    class testOptions(object):
+        endpoint = "http://localhost:3030/ds/query"
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    query    = "ASK { ex:s1 ?p ?o }"
+    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
+    assert status == 0, "Ask success status"
+    assert result == {'head': {}, 'boolean': True}
+    query    = "ASK { ex:notfound ?p ?o }"
+    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
+    assert status == 1, "Ask not found status"
+    assert result == {'head': {}, 'boolean': False}
     return
 
 def outputResult(progname, options, result):
     # @@TODO alternative formats
+    # Look to type of supplied value:  if string, write it, if JSON, format-and-write
+    # @@TODO if RDF graph, write selected RDFsyntax
+    # @@TODO if SELECT/ASK results, write selected result syntax
     sys.stdout.write(json.dumps(result))
     return
 
@@ -628,7 +696,7 @@ def runCommand(configbase, argv):
     """
     log.debug("runCommand: configbase %s, argv %s"%(configbase, repr(argv)))
     (options, args) = parseCommandArgs(argv)
-    status = 1
+    status = 2
     if options:
         status  = run(configbase, options, args)
     return status
@@ -646,6 +714,8 @@ if __name__ == "__main__":
     testGetBindings()
     #testGetRdfData()
     testQueryRdfData()
+    testQuerySparqlEndpointSelect() # Needs fuseki running with test data
+    testQuerySparqlEndpointAsk() # Needs fuseki running with test data
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)

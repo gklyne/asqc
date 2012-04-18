@@ -56,7 +56,9 @@ class SparqlHttpClient(object):
         reason = response.reason
         responsedata = response.read()
         hc.close()
-        if JSON: responsedata = json.loads(responsedata)
+        if JSON:
+            print "---- responsedata "+responsedata
+            responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 
     def doQueryPOST(self, query, accept="application/JSON", JSON=True):
@@ -67,7 +69,6 @@ class SparqlHttpClient(object):
             "Content-type": "application/x-www-form-urlencoded",
             "Accept":       accept
             }
-        self.setQueryEndPoint(endpointhost, endpointpath)
         hc = httplib.HTTPConnection(self._endpointhost)
         encodequery  = urllib.urlencode({"query": query})
         hc.request("POST", self._endpointpath, encodequery, reqheaders)
@@ -76,7 +77,9 @@ class SparqlHttpClient(object):
         reason = response.reason
         responsedata = response.read()
         hc.close()
-        if JSON: responsedata = json.loads(responsedata)
+        if JSON:
+            print "---- responsedata "+responsedata
+            responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 
 # End.
