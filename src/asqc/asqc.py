@@ -440,25 +440,25 @@ def queryRdfData(progname, options, prefixes, query, bindings):
     res = { "head": {} }
     if resps[0].type == 'ASK':
         res["boolean"] = any([ r.askAnswer for r in resps ])
-        return (0, res)
+        return (0 if res["boolean"] else 1, res)
     elif resps[0].type == 'SELECT':
         res["head"]["vars"] = resps[0].vars
         res["results"] = {}
         res["results"]["bindings"] = [ bindingToJSON(b) for r in resps for b in r.bindings ]
-        return (0, res)
+        return (0 if len(res["results"]["bindings"]) > 0 else 1, res)
     elif resps[0].type == 'CONSTRUCT':
-        assert False, "@@TODO"
+        res = rdflib.graph.ReadOnlyGraphAggregate( [r.graph for r in resps] )
+        return (0 if len(res) > 0 else 1, res)
     else:
         assert False, "Unexpected query response type %s"%resp.type
     return (2, None)
 
-def testQueryRdfData():
+def testQueryRdfDataSelect():
     class testOptions(object):
         rdf_data = ["test1.rdf", "test2.rdf"]
         prefix   = None
     options  = testOptions()
     prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    query    = "SELECT * WHERE { ?s ?p ?o }"
     bindings = (
             { "head":    { "vars": ["s", "p", "o"] }
             , "results": 
@@ -474,7 +474,9 @@ def testQueryRdfData():
                 ]
               }
             })
-    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
+    query = "SELECT * WHERE { ?s ?p ?o }"
+    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 0, "queryRdfData SELECT with data status"
     assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
     assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
@@ -492,6 +494,75 @@ def testQueryRdfData():
            , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
            , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
            } in result["results"]["bindings"], "queryRdfData result 4"
+    query = "SELECT * WHERE { <http://example.org/nonesuch> ?p ?o }"
+    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 1, "queryRdfData SELECT with no data status"
+    assert len(result["results"]["bindings"]) == 0, "queryRdfData result count"
+    return
+
+def testQueryRdfDataAsk():
+    class testOptions(object):
+        rdf_data = ["test1.rdf", "test2.rdf"]
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    bindings = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': rdflib.URIRef("http://example.org/test#s1")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s2")
+                  , 'o': rdflib.URIRef("http://example.org/test#o4")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s3")
+                  , 'p': rdflib.URIRef("http://example.org/test#p5")
+                  }
+                ]
+              }
+            })
+    query = "ASK { ?s ?p ?o }"
+    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 0, "queryRdfData ASK with data status"
+    assert result == {'head': {}, 'boolean': True}
+    query = "ASK { ex:nonesuch ?p ?o }"
+    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 1, "queryRdfData ASK with no data status"
+    assert result == {'head': {}, 'boolean': False}
+    return
+
+def testQueryRdfDataConstruct():
+    class testOptions(object):
+        rdf_data = ["test1.rdf", "test2.rdf"]
+        prefix   = None
+    options  = testOptions()
+    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
+    bindings = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': rdflib.URIRef("http://example.org/test#s1")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s2")
+                  , 'o': rdflib.URIRef("http://example.org/test#o4")
+                  }
+                , { 's': rdflib.URIRef("http://example.org/test#s3")
+                  , 'p': rdflib.URIRef("http://example.org/test#p5")
+                  }
+                ]
+              }
+            })
+    query    = "CONSTRUCT {?s ?p ?o } WHERE { ?s ?p ?o }"
+    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 0, "queryRdfData CONSTRUCT with data status"
+    assert len(result) == 4, "queryRdfData triple count"
+    assert ( rdflib.URIRef("http://example.org/test#s1"),
+             rdflib.URIRef("http://example.org/test#p1"),
+             rdflib.URIRef("http://example.org/test#o1") ) in result
+    query    = "CONSTRUCT { <http://example.org/nonesuch> ?p ?o } WHERE { <http://example.org/nonesuch> ?p ?o }"
+    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
+    assert status == 1, "queryRdfData CONSTRUCT with no data status"
+    assert len(result) == 0, "queryRdfData triple count"
     return
 
 def querySparqlEndpoint(progname, options, prefixes, query, bindings):
@@ -629,7 +700,16 @@ def outputResult(progname, options, result):
     # Look to type of supplied value:  if string, write it, if JSON, format-and-write
     # @@TODO if RDF graph, write selected RDFsyntax
     # @@TODO if SELECT/ASK results, write selected result syntax
-    sys.stdout.write(json.dumps(result))
+    if isinstance(result, rdflib.Graph):
+        print "---- RDF/XML output here ---"
+    else:
+        sys.stdout.write(json.dumps(result))
+    return
+
+def testOutputResultJSON():
+    return
+
+def testOutputResultRDFXML():
     return
 
 def run(configbase, options, args):
@@ -747,10 +827,14 @@ if __name__ == "__main__":
     #testGetPrefixes()
     testGetBindings()
     #testGetRdfData()
-    testQueryRdfData()
+    testQueryRdfDataSelect()
+    testQueryRdfDataAsk()
+    testQueryRdfDataConstruct()
     testQuerySparqlEndpointSelect() # Needs fuseki running with test data
     testQuerySparqlEndpointAsk() # Needs fuseki running with test data
     testQuerySparqlEndpointConstruct() # Needs fuseki running with test data
+    testOutputResultJSON()
+    testOutputResultRDFXML()
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)
