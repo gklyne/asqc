@@ -164,7 +164,8 @@ def testRetrieveUri():
     assert retrieveUri("file://"+urllib.pathname2url(os.getcwd())+"/test.txt") == "Test data\n"
     assert "<title>IANA &mdash; Example domains</title>" in retrieveUri("http://example.org/nosuchdata"), \
            retrieveUri("http://example.org/nosuchdata")
-    assert retrieveUri("http://nohost.example.org/nosuchdata") == None, retrieveUri("http://nohost.example.org/nosuchdata")
+    assert retrieveUri("http://nohost.example.org/nosuchdata") == None, \
+           retrieveUri("http://nohost.example.org/nosuchdata")
     return
 
 # Helper function for determining type of query
@@ -283,10 +284,14 @@ def getBindings(options):
         })
     if options.bindings and options.bindings != "-":
         bndtext = retrieveUri(options.bindings)
-    elif options.rdf_data or options.endpoint:
-        bndtext = sys.stdin.read()
+    elif options.bindings == "-":
+        if options.rdf_data or options.endpoint:
+            bndtext = sys.stdin.read()
+        else:
+            # Can't read bindings from stdin if trying to read RDF from stdin
+            return None
     else:
-        return None
+        bndtext = None
     if bndtext:
         try:
             bindings = json.loads(bndtext)
@@ -348,9 +353,10 @@ def testGetBindings():
     options  = testOptions()
     inpstr   = StringIO.StringIO(testBindings)
     bindings = getBindings(options)
-    assert bindings == None
+    assert bindings == defaultBindings, repr(bindings)
     #
     options = testOptions()
+    options.bindings = "-"
     options.rdf_data = ["test.rdfdata"]
     inpstr   = StringIO.StringIO(testBindings)
     with SwitchStdin(inpstr):
@@ -358,6 +364,7 @@ def testGetBindings():
         checkBindings(bindings)
     #
     options = testOptions()
+    options.bindings = "-"
     options.endpoint = "http://example.org/"
     inpstr   = StringIO.StringIO(testBindings)
     with SwitchStdin(inpstr):
@@ -694,7 +701,7 @@ def testQuerySparqlEndpointConstruct():
 
 def outputResult(progname, options, result):
     outstr = sys.stdout
-    if options.output:
+    if options.output and options.output != "-":
         print "Output to other than stdout not implemented"
     if isinstance(result, rdflib.Graph):
         result.serialize(destination=outstr, format="pretty-xml", base=None)
@@ -702,6 +709,7 @@ def outputResult(progname, options, result):
         outstr.write(result)
     else:
         outstr.write(json.dumps(result))
+        outstr.write("\n")
     return
 
 def testOutputResultJSON():
@@ -746,21 +754,27 @@ def testOutputResultRDFXML():
     return
 
 def run(configbase, options, args):
+    if options.runtests:
+        runTests()
+        return 0
     status   = 0
     progname = os.path.basename(args[0])
     query    = getQuery(options, args)
     if not query:
         print "%s: Could not determine query string (need query argument or -q option)"%progname
+        print "Run '%s --help' for more information"%progname
         return 2
     prefixes = getPrefixes(options)
     if not prefixes:
         print "%s: Could not determine query prefixes"%progname
+        print "Run '%s --help' for more information"%progname
         return 2
     bindings = getBindings(options)
     if not bindings:
         print "%s: Could not determine incoming variable bindings"%progname
+        print "Run '%s --help' for more information"%progname
         return 2
-    if option.endpoint:
+    if options.endpoint:
         (status,result) = querySparqlEndpoint(progname, options, prefixes, query, bindings)
     else:
         (status,result) = queryRdfData(progname, options, prefixes, query, bindings)
@@ -796,7 +810,7 @@ def parseCommandArgs(argv):
                       dest="bindings",
                       default=None,
                       help="URI or filename of resource containing incoming query variable bindings "+
-                           "(default stdin or none). "+
+                           "(default none). "+
                            "Specify '-' to use stdin. "+
                            "This option works for SELECT queries only when accessing a SPARQL endpoint.")
     parser.add_option("-r", "--rdf-input",
@@ -826,6 +840,11 @@ def parseCommandArgs(argv):
                       dest="verbose", 
                       default=False,
                       help="display verbose output")
+    parser.add_option("--test",
+                      action="store_true", 
+                      dest="runtests", 
+                      default=False,
+                      help="Run tests")
     # parse command line now
     (options, args) = parser.parse_args(argv)
     if len(args) < 1: parser.error("No command present")
@@ -848,26 +867,30 @@ def runCommand(configbase, argv):
         status  = run(configbase, options, args)
     return status
 
+def runTests():
+    print "Running tests..."
+    testResolveUri()
+    testRetrieveUri()                   # Needs Internet access to example.org
+    testQueryType()
+    testGetQuery()
+    testGetPrefixes()
+    testGetBindings()
+    testGetRdfData()
+    testQueryRdfDataSelect()
+    testQueryRdfDataAsk()
+    testQueryRdfDataConstruct()
+    testQuerySparqlEndpointSelect()     # Needs fuseki running with test data
+    testQuerySparqlEndpointAsk()        # Needs fuseki running with test data
+    testQuerySparqlEndpointConstruct()  # Needs fuseki running with test data
+    testOutputResultJSON()
+    testOutputResultRDFXML()
+    print "Done."
+    return
+
 if __name__ == "__main__":
     """
     Program invoked from the command line.
     """
-    # tests...
-    #testResolveUri()
-    #testRetrieveUri()
-    testQueryType()
-    #testGetQuery()
-    #testGetPrefixes()
-    testGetBindings()
-    #testGetRdfData()
-    testQueryRdfDataSelect()
-    testQueryRdfDataAsk()
-    testQueryRdfDataConstruct()
-    testQuerySparqlEndpointSelect() # Needs fuseki running with test data
-    testQuerySparqlEndpointAsk() # Needs fuseki running with test data
-    testQuerySparqlEndpointConstruct() # Needs fuseki running with test data
-    testOutputResultJSON()
-    testOutputResultRDFXML()
     # main program
     configbase = os.path.expanduser("~")
     status = runCommand(configbase, sys.argv)
