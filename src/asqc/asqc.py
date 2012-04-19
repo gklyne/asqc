@@ -118,10 +118,7 @@ def joinBinding(result_binding, constraint_binding):
             if result_binding[k] != constraint_binding[k]:
                 return None
     joined_binding = result_binding.copy()
-    ###print "**joined_binding**"+repr(joined_binding)
-    ###print "**constraint_binding**"+repr(constraint_binding)    
     joined_binding.update(constraint_binding)
-    ###print "**joined_binding**"+repr(joined_binding)
     return joined_binding
 
 def joinBindings(result_bindings, constraint_bindings):
@@ -696,20 +693,56 @@ def testQuerySparqlEndpointConstruct():
     return
 
 def outputResult(progname, options, result):
-    # @@TODO alternative formats
-    # Look to type of supplied value:  if string, write it, if JSON, format-and-write
-    # @@TODO if RDF graph, write selected RDFsyntax
-    # @@TODO if SELECT/ASK results, write selected result syntax
+    outstr = sys.stdout
+    if options.output:
+        print "Output to other than stdout not implemented"
     if isinstance(result, rdflib.Graph):
-        print "---- RDF/XML output here ---"
+        result.serialize(destination=outstr, format="pretty-xml", base=None)
+    elif isinstance(result, str):
+        outstr.write(result)
     else:
-        sys.stdout.write(json.dumps(result))
+        outstr.write(json.dumps(result))
     return
 
 def testOutputResultJSON():
+    class testOptions(object):
+        output = None
+    options  = testOptions()
+    result = (
+        { "head":    { "vars": ["s", "p", "o"] }
+        , "results": 
+          { "bindings": 
+            [ { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+              , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+              , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
+              }
+            ]
+          }
+        })
+    teststr = StringIO.StringIO()
+    with SwitchStdout(teststr):
+        outputResult("asqc", options, result)
+        testtxt = teststr.getvalue()
+    assert """"s": {"type": "uri", "value": "http://example.org/test#s1"}""" in testtxt
+    assert """"p": {"type": "uri", "value": "http://example.org/test#p1"}""" in testtxt
+    assert """"s": {"type": "uri", "value": "http://example.org/test#s1"}""" in testtxt
     return
 
 def testOutputResultRDFXML():
+    class testOptions(object):
+        output = None
+    options  = testOptions()
+    result = rdflib.Graph()
+    result.add(
+        ( rdflib.URIRef("http://example.org/test#s1")
+        , rdflib.URIRef("http://example.org/test#p1")
+        , rdflib.URIRef("http://example.org/test#o1")
+        ) )
+    teststr = StringIO.StringIO()
+    with SwitchStdout(teststr):
+        outputResult("asqc", options, result)
+        testtxt = teststr.getvalue()
+    assert """<rdf:Description rdf:about="http://example.org/test#s1">""" in testtxt
     return
 
 def run(configbase, options, args):
