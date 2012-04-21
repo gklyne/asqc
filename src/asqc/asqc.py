@@ -22,11 +22,13 @@ from SparqlHttpClient import SparqlHttpClient
 from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
 
-if __name__ == "__main__":
-    progdir = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
+#Use local copy of rdflib/rdfextras for testing
+#if __name__ == "__main__":
+#    progdir = os.path.dirname(os.path.abspath(__file__))
+#    sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
 
 import rdflib
+
 # Set up to use SPARQL
 rdflib.plugin.register(
     'sparql', rdflib.query.Processor,
@@ -35,18 +37,11 @@ rdflib.plugin.register(
     'sparql', rdflib.query.Result,
     'rdfextras.sparql.query', 'SPARQLQueryResult')
 
-# Helper methods from SPARQL code
-from rdfextras.sparql.results import jsonresults
-
 # Logging object
 log = logging.getLogger(__name__)
 
 class asqc_settings(object):
     VERSION = "v0.1"
-
-# Make sure support libraries can be found on path
-if __name__ == "__main__":
-    sys.path.append(os.path.join(sys.path[0],".."))
 
 # Helper functions for JSON formatting and parsing
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
@@ -430,17 +425,18 @@ def testGetRdfData():
 def queryRdfData(progname, options, prefixes, query, bindings):
     """
     Submit query against RDF data.
-    Result is dictionary/listy strcuture suitable for JSON encoding.
+    Result is tuple of status and dictionary/list structure suitable for JSON encoding.
     """
     rdfgraph = getRdfData(options)
     if not rdfgraph:
         print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
         return (2, None)
     query = prefixes + query
-    resps = []
-    for b in bindings['results']['bindings']:
-        resp = rdfgraph.query(query, initBindings=b)
-        resps.append(resp)
+    ###print query
+    resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
+    #for b in bindings['results']['bindings']:
+    #    resp = rdfgraph.query(query, initBindings=b)
+    #    resps.append(resp)
     res = { "head": {} }
     if resps[0].type == 'ASK':
         res["boolean"] = any([ r.askAnswer for r in resps ])

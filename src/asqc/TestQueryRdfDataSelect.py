@@ -10,6 +10,11 @@ import StringIO
 import json
 import re
 
+#Use local copy of rdflib/rdfextras for testing
+#if __name__ == "__main__":
+#    progdir = os.path.dirname(os.path.abspath(__file__))
+#    sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
+
 import rdflib
 
 # Set up to use SPARQL
@@ -44,16 +49,16 @@ def queryRdfData(progname, options, prefixes, query, bindings):
     rdfgraph = rdflib.Graph()
     rdfgraph.parse(data=rdftext)
     query = prefixes + query
-    print "---- Query\n"+query+"\n----"
+    ###print "---- Query\n"+query+"\n----"
     resp = rdfgraph.query(query)
     retrieveresponsetypenoinitbindings = resp.type
-    print "---- retrieveresponsetypenoinitbindings: "+retrieveresponsetypenoinitbindings
+    ###print "---- retrieveresponsetypenoinitbindings: "+retrieveresponsetypenoinitbindings
     resp = rdfgraph.query(query, initBindings=bindings['results']['bindings'][0])
     retrieveresponsetypeonequery = resp.type
-    print "---- retrieveresponsetypeonequery: "+retrieveresponsetypeonequery
+    ###print "---- retrieveresponsetypeonequery: "+retrieveresponsetypeonequery
     resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
     retrieveresponsetype = resps[0].type
-    print "---- retrieveresponsetype: "+retrieveresponsetype
+    ###print "---- retrieveresponsetype: "+retrieveresponsetype
     return (2, None)
 
 def testQueryRdfDataSelect():

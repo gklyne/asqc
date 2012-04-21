@@ -1,9 +1,13 @@
 asqc TODO
 
-Implement outputResult properly to generate real JSON or RDF data
-(Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
-Alternative RDF formats
-Alternative binding formats
 Factor out tests to separate test suite
 Packaging for easy installation
+Alternative RDF formats
+Alternative binding formats
+(Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
+
+Note: to install package directly from git:
+  pip install git+https://github.com/RDFLib/rdfextras.git 
+
+But see http://stackoverflow.com/questions/3777075/https-github-access for dealing with https certificate validation
 
