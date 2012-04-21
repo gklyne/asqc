@@ -13,7 +13,6 @@ import urllib2
 import StringIO
 import json
 import re
-#import codecs
 import optparse
 import logging
 
@@ -21,11 +20,6 @@ from SparqlHttpClient import SparqlHttpClient
 
 from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
-
-#Use local copy of rdflib/rdfextras for testing
-#if __name__ == "__main__":
-#    progdir = os.path.dirname(os.path.abspath(__file__))
-#    sys.path.insert(0, progdir+"/../") # Insert at front of path to override pre-installed rdflib, if any
 
 import rdflib
 
@@ -432,7 +426,6 @@ def queryRdfData(progname, options, prefixes, query, bindings):
         print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
         return (2, None)
     query = prefixes + query
-    ###print query
     resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
     #for b in bindings['results']['bindings']:
     #    resp = rdfgraph.query(query, initBindings=b)
