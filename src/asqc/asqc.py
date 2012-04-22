@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-ASQC - A SPARQL query client - command parser and dispatcher
+ASQC - A SPARQL query client
 """
 
 import sys
@@ -132,12 +132,6 @@ def resolveUri(uriref, base, path=""):
         upath = upath + '/'
     return urlparse.urljoin(urlparse.urljoin(base, upath), uriref)
 
-def testResolveUri():
-    assert resolveUri("http://example.org/path", "http://base.example.org/base") == "http://example.org/path"
-    assert resolveUri("path", "http://base.example.org/base") == "http://base.example.org/path"
-    assert resolveUri("path", "file://", os.getcwd() ) == "file://"+urllib.pathname2url(os.getcwd())+"/path"
-    return
-
 def retrieveUri(uriref):
     uri = resolveUri(uriref, "file://", os.getcwd())
     request  = urllib2.Request(uri)
@@ -147,15 +141,6 @@ def retrieveUri(uriref):
     except:
         result = None
     return result
-
-def testRetrieveUri():
-    assert retrieveUri("test.txt") == "Test data\n"
-    assert retrieveUri("file://"+urllib.pathname2url(os.getcwd())+"/test.txt") == "Test data\n"
-    assert "<title>IANA &mdash; Example domains</title>" in retrieveUri("http://example.org/nosuchdata"), \
-           retrieveUri("http://example.org/nosuchdata")
-    assert retrieveUri("http://nohost.example.org/nosuchdata") == None, \
-           retrieveUri("http://nohost.example.org/nosuchdata")
-    return
 
 # Helper function for determining type of query
 
@@ -172,38 +157,6 @@ def queryType(query):
         return match.group(3).upper()
     return None
 
-def testQueryType():
-    q1 = """
-        prefix foo: <http://example.org/foo#>
-        ask { ?s ?p ?o }
-        """
-    assert queryType(q1) == "ASK"
-    q2 = """
-        base <http://example.org/base#>
-        prefix foo: <http://example.org/foo#>
-        SELECT * WHERE { ?s ?p ?o }
-        """
-    assert queryType(q2) == "SELECT"
-    q3 = """
-        prefix foo: <http://example.org/foo#>
-        prefix bar: <http://example.org/bar#>
-        construct { ?s ?p ?o }
-        """
-    assert queryType(q3) == "CONSTRUCT"
-    q4 = """
-        prefix foo: <http://example.org/foo#>
-        prefix ask: <http://example.org/ask#>
-        DeScRiBe ?s where { ?s ?p ?o }
-        """
-    assert queryType(q4) == "DESCRIBE"
-    q5 = """
-        prefix foo: <http://example.org/foo#>
-        prefix bar: <http://example.org/bar#>
-        noquery { ?s ?p ?o }
-        """
-    assert queryType(q5) == None
-    return
-
 # Main program functions
 
 def getQuery(options, args):
@@ -215,18 +168,6 @@ def getQuery(options, args):
     elif len(args) >= 2:
         return args[1]
     return None
-
-def testGetQuery():
-    class testOptions(object):
-        query = None
-    options = testOptions()
-    options.query = "test.sparql"
-    assert getQuery(options, ["test"]) == "SELECT * WHERE { ?s ?p ?o }\n"
-    options.query = None
-    assert getQuery(options, ["test", "SELECT * WHERE { ?s ?p ?o }"]) == "SELECT * WHERE { ?s ?p ?o }"
-    options.query = None
-    assert getQuery(options, ["test"]) == None
-    return
 
 def getPrefixes(options):
     """
@@ -245,25 +186,6 @@ def getPrefixes(options):
     prefixUri  = options.prefix or resolveUri(".asqc-prefixes", "file://", configbase)
     prefixes   = retrieveUri(prefixUri)
     return prefixes or defaultPrefixes
-
-def testGetPrefixes():
-    class testOptions(object):
-        prefix = None
-    options = testOptions()
-    # named file or resource
-    f = open("test.prefixes", "r")
-    p = f.read()
-    f.close()
-    options.prefix = "test.prefixes"
-    assert getPrefixes(options) == p, getPrefixes(options)
-    # configured defaults
-    configprefixfile = os.path.join(os.path.expanduser("~"), ".asqc-prefixes")
-    f = open(configprefixfile, "r")
-    p = f.read()
-    f.close()
-    options.prefix = None
-    assert getPrefixes(options) == p, getPrefixes(options)
-    return
 
 def getBindings(options):
     bndtext  = None
@@ -289,82 +211,6 @@ def getBindings(options):
             bindings = None
     return bindings
 
-def testGetBindings():
-    class testOptions(object):
-        rdf_data = None
-        bindings = None
-        endpoint = None
-    defaultBindings = (
-        { "head":    { "vars": [] }
-        , "results": { "bindings": [{}] }
-        })
-    testBindings = """
-        { "head": { "vars": [ "a", "b", "c", "d", "e" ] }
-        , "results":
-          { "bindings":
-            [ { "a": { "type": "uri",           "value": "http://example.org/a1" }
-              , "b": { "type": "bnode",         "value": "b1" }
-              , "c": { "type": "literal",       "value": "lit-c1" }
-              , "d": { "type": "typed-literal", "value": "1", "datatype": "http://www.w3.org/2001/XMLSchema#integer" }
-              , "e": { "type": "literal",       "value": "lit-c1", "xml:lang": "en" }
-              }
-            , { "a": { "type": "uri",           "value": "http://example.org/a2" }
-              , "b": { "type": "bnode",         "value": "b2" }
-              , "c": { "type": "literal",       "value": "lit-c2" }
-              }
-            ]
-          }
-        }
-        """
-    def checkBindings(bindings):
-        xsdint = "http://www.w3.org/2001/XMLSchema#integer"
-        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
-        assert bindings['results']['bindings'][0]['a'] == rdflib.URIRef("http://example.org/a1")
-        assert bindings['results']['bindings'][0]['b'] == rdflib.BNode("b1")
-        assert bindings['results']['bindings'][0]['c'] == rdflib.Literal("lit-c1")
-        assert bindings['results']['bindings'][0]['d'] == rdflib.Literal("1", datatype=xsdint)
-        assert bindings['results']['bindings'][0]['e'] == rdflib.Literal("lit-c1", lang="en")
-        assert bindings['results']['bindings'][1]['a'] == rdflib.URIRef("http://example.org/a2")
-        assert bindings['results']['bindings'][1]['b'] == rdflib.BNode("b2")
-        assert bindings['results']['bindings'][1]['c'] == rdflib.Literal("lit-c2")
-    def checkBindingsJSON(bindings):
-        assert bindings['head']['vars']                == [ 'a', 'b', 'c', 'd', 'e' ]
-        assert bindings['results']['bindings'][0]['a'] == { 'type': "uri",           'value': "http://example.org/a1" }
-        assert bindings['results']['bindings'][0]['b'] == { 'type': "bnode",         'value': "b1" }
-        assert bindings['results']['bindings'][0]['c'] == { 'type': "literal",       'value': "lit-c1" }
-        assert bindings['results']['bindings'][0]['d'] == { 'type': "typed-literal", 'value': "1"
-                                                          , 'datatype': "http://www.w3.org/2001/XMLSchema#integer" }
-        assert bindings['results']['bindings'][0]['e'] == { 'type': "literal",       'value': "lit-c1", 'xml:lang': "en" }
-        assert bindings['results']['bindings'][1]['a'] == { 'type': "uri",           'value': "http://example.org/a2" }
-        assert bindings['results']['bindings'][1]['b'] == { 'type': "bnode",         'value': "b2" }
-        assert bindings['results']['bindings'][1]['c'] == { 'type': "literal",       'value': "lit-c2" }
-    #
-    options  = testOptions()
-    inpstr   = StringIO.StringIO(testBindings)
-    bindings = getBindings(options)
-    assert bindings == defaultBindings, repr(bindings)
-    #
-    options = testOptions()
-    options.bindings = "-"
-    options.rdf_data = ["test.rdfdata"]
-    inpstr   = StringIO.StringIO(testBindings)
-    with SwitchStdin(inpstr):
-        bindings = getBindings(options)
-        checkBindings(bindings)
-    #
-    options = testOptions()
-    options.bindings = "-"
-    options.endpoint = "http://example.org/"
-    inpstr   = StringIO.StringIO(testBindings)
-    with SwitchStdin(inpstr):
-        bindings = getBindings(options)
-        checkBindings(bindings)
-    #
-    options.bindings = "test.bindings"
-    bindings = getBindings(options)
-    checkBindings(bindings)
-    return
-
 def getRdfData(options):
     """
     Reads RDF data from files specified using -r or from stdin
@@ -382,39 +228,6 @@ def getRdfData(options):
         except Exception, e:
             return None
     return rdfgraph
-
-def testGetRdfData():
-    class testOptions(object):
-        rdf_data = None
-    testRdfData = """<?xml version="1.0" encoding="UTF-8"?>
-        <rdf:RDF
-          xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-          xmlns:rdfs='http://www.w3.org/2000/01/rdf-schema#'
-        >
-          <rdf:Description>
-            <rdfs:label>Example</rdfs:label>
-            <rdfs:comment>This is really just an example.</rdfs:comment>
-          </rdf:Description>
-        </rdf:RDF>
-        """
-    #
-    options = testOptions()
-    inpstr   = StringIO.StringIO(testRdfData)
-    with SwitchStdin(inpstr):
-        rdfgraph = getRdfData(options)
-        assert len(rdfgraph) == 2
-    #
-    options = testOptions()
-    options.rdf_data = ["test.rdf"]
-    rdfgraph = getRdfData(options)
-    assert len(rdfgraph) == 2
-    #
-    options = testOptions()
-    options.rdf_data = ["nosuchfile.rdf"]
-    rdfgraph = getRdfData(options)
-    assert rdfgraph == None
-    #
-    return
 
 def queryRdfData(progname, options, prefixes, query, bindings):
     """
@@ -445,118 +258,6 @@ def queryRdfData(progname, options, prefixes, query, bindings):
     else:
         assert False, "Unexpected query response type %s"%resp.type
     return (2, None)
-
-def testQueryRdfDataSelect():
-    class testOptions(object):
-        rdf_data = ["test1.rdf", "test2.rdf"]
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    bindings = (
-            { "head":    { "vars": ["s", "p", "o"] }
-            , "results": 
-              { "bindings": 
-                [ { 's': rdflib.URIRef("http://example.org/test#s1")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s2")
-                  , 'o': rdflib.URIRef("http://example.org/test#o4")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s3")
-                  , 'p': rdflib.URIRef("http://example.org/test#p5")
-                  }
-                ]
-              }
-            })
-    query = "SELECT * WHERE { ?s ?p ?o }"
-    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 0, "queryRdfData SELECT with data status"
-    assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-           } in result["results"]["bindings"], "queryRdfData result 1"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
-           } in result["results"]["bindings"], "queryRdfData result 2"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
-           } in result["results"]["bindings"], "queryRdfData result 3"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
-           } in result["results"]["bindings"], "queryRdfData result 4"
-    query = "SELECT * WHERE { <http://example.org/nonesuch> ?p ?o }"
-    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 1, "queryRdfData SELECT with no data status"
-    assert len(result["results"]["bindings"]) == 0, "queryRdfData result count"
-    return
-
-def testQueryRdfDataAsk():
-    class testOptions(object):
-        rdf_data = ["test1.rdf", "test2.rdf"]
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    bindings = (
-            { "head":    { "vars": ["s", "p", "o"] }
-            , "results": 
-              { "bindings": 
-                [ { 's': rdflib.URIRef("http://example.org/test#s1")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s2")
-                  , 'o': rdflib.URIRef("http://example.org/test#o4")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s3")
-                  , 'p': rdflib.URIRef("http://example.org/test#p5")
-                  }
-                ]
-              }
-            })
-    query = "ASK { ?s ?p ?o }"
-    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 0, "queryRdfData ASK with data status"
-    assert result == {'head': {}, 'boolean': True}
-    query = "ASK { ex:nonesuch ?p ?o }"
-    (status,result) = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 1, "queryRdfData ASK with no data status"
-    assert result == {'head': {}, 'boolean': False}
-    return
-
-def testQueryRdfDataConstruct():
-    class testOptions(object):
-        rdf_data = ["test1.rdf", "test2.rdf"]
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    bindings = (
-            { "head":    { "vars": ["s", "p", "o"] }
-            , "results": 
-              { "bindings": 
-                [ { 's': rdflib.URIRef("http://example.org/test#s1")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s2")
-                  , 'o': rdflib.URIRef("http://example.org/test#o4")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s3")
-                  , 'p': rdflib.URIRef("http://example.org/test#p5")
-                  }
-                ]
-              }
-            })
-    query    = "CONSTRUCT {?s ?p ?o } WHERE { ?s ?p ?o }"
-    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 0, "queryRdfData CONSTRUCT with data status"
-    assert len(result) == 4, "queryRdfData triple count"
-    assert ( rdflib.URIRef("http://example.org/test#s1"),
-             rdflib.URIRef("http://example.org/test#p1"),
-             rdflib.URIRef("http://example.org/test#o1") ) in result
-    query    = "CONSTRUCT { <http://example.org/nonesuch> ?p ?o } WHERE { <http://example.org/nonesuch> ?p ?o }"
-    (status,result)   = queryRdfData("test", options, prefixes, query, bindings)
-    assert status == 1, "queryRdfData CONSTRUCT with no data status"
-    assert len(result) == 0, "queryRdfData triple count"
-    return
 
 def querySparqlEndpoint(progname, options, prefixes, query, bindings):
     """
@@ -603,91 +304,6 @@ def querySparqlEndpoint(progname, options, prefixes, query, bindings):
             assert False, "Error parsing RDF from SPARQL endpoint query: "+str(e)
     return (status, result)
 
-def testQuerySparqlEndpointSelect():
-    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
-    # containing the contents of files test1.rdf and test2.rdf.
-    # (I use Jena Fuseki with default settings for testing.)
-    class testOptions(object):
-        endpoint = "http://localhost:3030/ds/query"
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    query    = "SELECT * WHERE { ?s ?p ?o }"
-    bindings = (
-            { "head":    { "vars": ["s", "p", "o"] }
-            , "results": 
-              { "bindings": 
-                [ { 's': rdflib.URIRef("http://example.org/test#s1")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s2")
-                  , 'o': rdflib.URIRef("http://example.org/test#o4")
-                  }
-                , { 's': rdflib.URIRef("http://example.org/test#s3")
-                  , 'p': rdflib.URIRef("http://example.org/test#p5")
-                  }
-                ]
-              }
-            })
-    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, bindings)
-    assert len(result["results"]["bindings"]) == 4, "querySparqlEndpoint result count"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-           } in result["results"]["bindings"], "querySparqlEndpoint result 1"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
-           } in result["results"]["bindings"], "querySparqlEndpoint result 2"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
-           } in result["results"]["bindings"], "querySparqlEndpoint result 3"
-    assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
-           , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
-           , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
-           } in result["results"]["bindings"], "querySparqlEndpoint result 4"
-    return
-
-def testQuerySparqlEndpointAsk():
-    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
-    # containing the contents of files test1.rdf and test2.rdf.
-    # (I use Jena Fuseki with default settings for testing.)
-    class testOptions(object):
-        endpoint = "http://localhost:3030/ds/query"
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    query    = "ASK { ex:s1 ?p ?o }"
-    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
-    assert status == 0, "Ask success status"
-    assert result == {'head': {}, 'boolean': True}
-    query    = "ASK { ex:notfound ?p ?o }"
-    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
-    assert status == 1, "Ask not found status"
-    assert result == {'head': {}, 'boolean': False}
-    return
-
-def testQuerySparqlEndpointConstruct():
-    # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
-    # containing the contents of files test1.rdf and test2.rdf.
-    # (I use Jena Fuseki with default settings for testing.)
-    class testOptions(object):
-        endpoint = "http://localhost:3030/ds/query"
-        prefix   = None
-    options  = testOptions()
-    prefixes = getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
-    query    = "CONSTRUCT { ex:s1 ?p ?o } WHERE { ex:s1 ?p ?o }"
-    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
-    assert status == 0, "Construct success status"
-    assert len(result) == 2
-    assert ( rdflib.URIRef("http://example.org/test#s1"),
-             rdflib.URIRef("http://example.org/test#p1"),
-             rdflib.URIRef("http://example.org/test#o1") ) in result
-    query    = "CONSTRUCT { ex:notfound ?p ?o } WHERE { ex:notfound ?p ?o }"
-    (status,result)   = querySparqlEndpoint("test", options, prefixes, query, None)
-    assert status == 1, "Construct not found status"
-    return
-
 def outputResult(progname, options, result):
     outstr = sys.stdout
     if options.output and options.output != "-":
@@ -701,51 +317,7 @@ def outputResult(progname, options, result):
         outstr.write("\n")
     return
 
-def testOutputResultJSON():
-    class testOptions(object):
-        output = None
-    options  = testOptions()
-    result = (
-        { "head":    { "vars": ["s", "p", "o"] }
-        , "results": 
-          { "bindings": 
-            [ { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-              , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
-              , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-              }
-            ]
-          }
-        })
-    teststr = StringIO.StringIO()
-    with SwitchStdout(teststr):
-        outputResult("asqc", options, result)
-        testtxt = teststr.getvalue()
-    assert """"s": {"type": "uri", "value": "http://example.org/test#s1"}""" in testtxt
-    assert """"p": {"type": "uri", "value": "http://example.org/test#p1"}""" in testtxt
-    assert """"s": {"type": "uri", "value": "http://example.org/test#s1"}""" in testtxt
-    return
-
-def testOutputResultRDFXML():
-    class testOptions(object):
-        output = None
-    options  = testOptions()
-    result = rdflib.Graph()
-    result.add(
-        ( rdflib.URIRef("http://example.org/test#s1")
-        , rdflib.URIRef("http://example.org/test#p1")
-        , rdflib.URIRef("http://example.org/test#o1")
-        ) )
-    teststr = StringIO.StringIO()
-    with SwitchStdout(teststr):
-        outputResult("asqc", options, result)
-        testtxt = teststr.getvalue()
-    assert """<rdf:Description rdf:about="http://example.org/test#s1">""" in testtxt
-    return
-
 def run(configbase, options, args):
-    if options.runtests:
-        runTests()
-        return 0
     status   = 0
     progname = os.path.basename(args[0])
     query    = getQuery(options, args)
@@ -829,11 +401,6 @@ def parseCommandArgs(argv):
                       dest="verbose", 
                       default=False,
                       help="display verbose output")
-    parser.add_option("--test",
-                      action="store_true", 
-                      dest="runtests", 
-                      default=False,
-                      help="Run tests")
     # parse command line now
     (options, args) = parser.parse_args(argv)
     if len(args) < 1: parser.error("No command present")
@@ -855,26 +422,6 @@ def runCommand(configbase, argv):
     if options:
         status  = run(configbase, options, args)
     return status
-
-def runTests():
-    print "Running tests..."
-    testResolveUri()
-    testRetrieveUri()                   # Needs Internet access to example.org
-    testQueryType()
-    testGetQuery()
-    testGetPrefixes()
-    testGetBindings()
-    testGetRdfData()
-    testQueryRdfDataSelect()
-    testQueryRdfDataAsk()
-    testQueryRdfDataConstruct()
-    testQuerySparqlEndpointSelect()     # Needs fuseki running with test data
-    testQuerySparqlEndpointAsk()        # Needs fuseki running with test data
-    testQuerySparqlEndpointConstruct()  # Needs fuseki running with test data
-    testOutputResultJSON()
-    testOutputResultRDFXML()
-    print "Done."
-    return
 
 def runMain():
     """

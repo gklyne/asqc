@@ -61,7 +61,7 @@ def getTestSuite(testclass, testdict, select="unit"):
     elif select[0:3] == "pen":
         testclasses = ["pending"]
     elif select[0:3] == "all":
-        testclasses = ["unit", "component"]
+        testclasses = ["unit", "component", "integration"]
     else:
         testclasses = ["unit"]
     for c in testclasses:
