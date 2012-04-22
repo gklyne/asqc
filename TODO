@@ -1,7 +1,7 @@
 == asqc TODO ==
 
-Factor out tests to separate test suite
 Packaging for easy installation
+Refactor StdinContext and StdoutContext to MiscLib; update packaging to include MiscLib as extra?
 Alternative RDF formats
 Alternative binding formats
 (Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
@@ -22,8 +22,10 @@ See also:
 virtualenv testenv
 source testenv/bin/activate
 
+python setup.py build
+python setup.py install
+
 python setup.py register
-(python setup.py sdist upload)
-
-
+python setup.py sdist
+python setup.py upload
 
