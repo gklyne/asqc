@@ -1,4 +1,4 @@
-asqc TODO
+== asqc TODO ==
 
 Factor out tests to separate test suite
 Packaging for easy installation
@@ -6,8 +6,24 @@ Alternative RDF formats
 Alternative binding formats
 (Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
 
+== Notes ==
+
 Note: to install package directly from git:
   pip install git+https://github.com/RDFLib/rdfextras.git 
 
 But see http://stackoverflow.com/questions/3777075/https-github-access for dealing with https certificate validation
+
+Notes for building package:
+
+See also:
+- http://www.ibm.com/developerworks/opensource/library/os-pythonpackaging/index.html
+- http://peak.telecommunity.com/DevCenter/setuptools
+
+virtualenv testenv
+source testenv/bin/activate
+
+python setup.py register
+(python setup.py sdist upload)
+
+
 

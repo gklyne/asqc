@@ -19,6 +19,12 @@
 # Compiled Python file
 *.pyc
 
+# Distribution files created by setup.py and virtualenv
+*.egg-info/
+/src/build
+/src/spike
+/testenv
+
 # Eclipse/Pydev files
 /.pydevproject
 /.project

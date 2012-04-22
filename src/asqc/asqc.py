@@ -876,13 +876,19 @@ def runTests():
     print "Done."
     return
 
+def runMain():
+    """
+    Main program transfer function for setup.py console script
+    """
+    configbase = os.path.expanduser("~")
+    return runCommand(configbase, sys.argv)
+
 if __name__ == "__main__":
     """
     Program invoked from the command line.
     """
     # main program
-    configbase = os.path.expanduser("~")
-    status = runCommand(configbase, sys.argv)
+    status = runMain()
     sys.exit(status)
 
 #--------+---------+---------+---------+---------+---------+---------+---------+
