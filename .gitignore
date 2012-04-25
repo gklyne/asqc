@@ -21,6 +21,7 @@
 
 # Distribution files created by setup.py and virtualenv
 *.egg-info/
+/src/dist
 /src/build
 /src/spike
 /testenv

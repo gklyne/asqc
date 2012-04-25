@@ -34,8 +34,9 @@ rdflib.plugin.register(
 # Logging object
 log = logging.getLogger(__name__)
 
+import __init__
 class asqc_settings(object):
-    VERSION = "v0.1"
+    VERSION = __init__.__version__
 
 # Helper functions for JSON formatting and parsing
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)

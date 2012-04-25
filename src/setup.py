@@ -119,7 +119,7 @@ setup(
     name=NAME,
     version=VERSION,
     description=DESCRIPTION,
-    long_description=read("README.rst"),
+    long_description=read("README.txt"),
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     license="MIT",
@@ -142,10 +142,10 @@ setup(
         "Programming Language :: Python",
         ],
     zip_safe=False,
-    install_requires=["rdflib >= 3.2.0", "rdfextras ==0.2-dev"],
+    install_requires=["rdflib >= 3.2.1", "rdfextras >=0.2"],
     entry_points = {
         'console_scripts': [
-            'asqc = asqc.asqc:runMain',
+            'asq = asqc.asqc:runMain',
             ],
         },
     )
