@@ -58,3 +58,25 @@ Response:
 {"head": {"link": [], "vars": ["film"]}, "results": {"distinct": false, "bindings": [{"film": {"type": "uri", "value": "http://dbpedia.org/resource/Wings_of_Desire"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Ararat_%28film%29"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Three_Colors:_Blue"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Orpheus_%28film%29"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Ali_G_Indahouse"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/The_Discreet_Charm_of_the_Bourgeoisie"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/The_City_of_Lost_Children"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Confidentially_Yours"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Ma_vraie_vie_%C3%A0_Rouen"}}, {"film": {"type": "uri", "value": "http://dbpedia.org/resource/Beau_travail"}}], "ordered": true}}
 ]]
 
+
+= SKOS Ontology =
+
+Ontology location: http://www.w3.org/2009/08/skos-reference/skos.rdf
+
+(see: curl -H "Accept: application/rdf+xml" http://www.w3.org/2004/02/skos/core#)
+
+Prefixes: skos.prefixes
+
+== List defined classes ==
+
+Query:
+
+  SELECT DISTINCT ?c WHERE { ?c rtdf:type owl:Class }
+
+ASQ command:
+
+  asq -r http://www.w3.org/2009/08/skos-reference/skos.rdf -p skos.prefixes "SELECT DISTINCT ?c WHERE { ?c rdf:type owl:Class }"
+
+Or as RDF:
+
+  asq -r http://www.w3.org/2009/08/skos-reference/skos.rdf -p skos.prefixes "CONSTRUCT { ?c rdf:type owl:Class } WHERE { ?c rdf:type owl:Class }"
