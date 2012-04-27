@@ -24,6 +24,7 @@
 /src/dist
 /src/build
 /src/spike
+/spike
 /testenv
 
 # Eclipse/Pydev files
