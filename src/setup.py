@@ -132,6 +132,9 @@ setup(
     #package_data = {
     #    'asqc': ['test*'],
     #    },
+    exclude_package_data = {
+        '': ['spike/*'] 
+        },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
