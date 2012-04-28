@@ -13,23 +13,21 @@ Installation is from Python Package Index (PyPI).
 ### Temporary installation
 
 Select working directory, then:
-```virtualenv testenv
-source testenv/bin/activate
-pip install asqc
-```
+
+  virtualenv testenv
+  source testenv/bin/activate
+  pip install asqc
 
 When finished, from the same directory:
-```deactivate
-rm -rf testenv
-```
+
+  deactivate
+  rm -rf testenv
 
 ### System-wide installation (needs root privileges)
 
-
-```sudo pip install asqc
-```
+  sudo pip install asqc
 
 If older versions of rdflib and/or other utilities are installed, it may be necessary to force an upgrade, thus:
-```sudo pip install --upgrade asqc
-```
+
+  sudo pip install --upgrade asqc
 
