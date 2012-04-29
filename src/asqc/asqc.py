@@ -276,6 +276,11 @@ def querySparqlEndpoint(progname, options, prefixes, query, bindings):
         # See: http://gearon.blogspot.co.uk/2011/09/sparql-json-after-commenting-other-day.html
         resulttype = "application/sparql-results+json"
         resultjson = True
+    if options.verbose:
+        print "== Query to endpoint =="
+        print query
+        print "== resulttype: "+resulttype
+        print "== resultjson: "+str(resultjson)
     sc = SparqlHttpClient(endpointuri=options.endpoint)
     ((status, reason), result) = sc.doQueryPOST(query, accept=resulttype, JSON=resultjson)
     if status != 200:
@@ -320,6 +325,9 @@ def outputResult(progname, options, result):
 
 def run(configbase, options, args):
     status   = 0
+    if options.examples:
+        print "%s/examples"%(os.path.dirname(os.path.abspath(__file__)))
+        return 0
     progname = os.path.basename(args[0])
     query    = getQuery(options, args)
     if not query:
@@ -336,6 +344,15 @@ def run(configbase, options, args):
         print "%s: Could not determine incoming variable bindings"%progname
         print "Run '%s --help' for more information"%progname
         return 2
+    if options.verbose:
+        print "== Options =="
+        print repr(options)
+        print "== Prefixes =="
+        print prefixes
+        print "== Query =="
+        print query
+        print "== Bindings =="
+        print bindings
     if options.endpoint:
         (status,result) = querySparqlEndpoint(progname, options, prefixes, query, bindings)
     else:
@@ -355,10 +372,17 @@ def parseCommandArgs(argv):
     """
     # create a parser for the command line options
     parser = optparse.OptionParser(
-                usage="%prog [options] [query]\n%prog --help  for option summary",
+                usage=("%prog [options] [query]\n"+
+                       "%prog --help      for an options summary\n"+
+                       "%prog --examples  to display the path containing example queries"),
                 description="A sparql query client, designed to be used as a filter in a command pieline. "+
                             "Pipelined data can be RDF or query variable binding sets, depending on the options used.",
                 version="%prog "+asqc_settings.VERSION)
+    parser.add_option("--examples",
+                      action="store_true", 
+                      dest="examples", 
+                      default=False,
+                      help="display path of examples directory and exit")
     parser.add_option("-q", "--query",
                       dest="query", 
                       help="URI or filename of resource containing query to execute. "+

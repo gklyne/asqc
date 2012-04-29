@@ -11,10 +11,8 @@ from distutils.util import convert_path
 from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
-
 def read(fname):
     return codecs.open(os.path.join(os.path.dirname(__file__), fname)).read()
-
 
 # Provided as an attribute, so you can append to these instead
 # of replicating them:
@@ -124,14 +122,15 @@ setup(
     author_email=AUTHOR_EMAIL,
     license="MIT",
     url=URL,
-    packages=find_packages(exclude=["tests.*", "tests"]),
-    package_data=find_package_data(
-        PACKAGE,
-        only_in_packages=False
-        ),
-    #package_data = {
-    #    'asqc': ['test*'],
-    #    },
+    #packages=find_packages(exclude=["tests.*", "tests"]),
+    #package_data=find_package_data(
+    #    PACKAGE,
+    #    only_in_packages=False
+    #    ),
+    packages = ['asqc'],
+    package_data = {
+        'asqc': ['test/*', 'examples/*'],
+        },
     exclude_package_data = {
         '': ['spike/*'] 
         },
