@@ -117,7 +117,7 @@ setup(
     name=NAME,
     version=VERSION,
     description=DESCRIPTION,
-    long_description=read("../README.markdown"),
+    long_description=read("README.txt"),
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
     license="MIT",
