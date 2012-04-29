@@ -43,6 +43,51 @@ See also the examples described below.
 
 Currently, RDF data is supported as RDF/XML only, and SPARQL SELECT query results as JSON.  Support for other formats is on the TODO list.
 
+## Usage
+
+This information is displayed by "asq --help":
+
+```
+  asq [options] [query]
+  asq --help      for an options summary
+  asq --examples  to display the path containing example queries
+
+A sparql query client, designed to be used as a filter in a command pieline.
+Pipelined data can be RDF or query variable binding sets, depending on the
+options used.
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  --examples            display path of examples directory and exit
+  -q QUERY, --query=QUERY
+                        URI or filename of resource containing query to
+                        execute. If not present, query must be supplied as
+                        command line argument.
+  -p PREFIX, --prefix=PREFIX
+                        URI or filename of resource containing query prefixes
+                        (default ~/.asqc-prefixes)
+  -b BINDINGS, --bindings=BINDINGS
+                        URI or filename of resource containing incoming query
+                        variable bindings (default none). Specify '-' to use
+                        stdin. This option works for SELECT queries only when
+                        accessing a SPARQL endpoint.
+  -r RDF_DATA, --rdf-input=RDF_DATA
+                        URI or filename of RDF resource to query (default
+                        stdin or none). May be repeated to merge multiple
+                        input resources. Specify '-' to use stdin.
+  -e ENDPOINT, --endpoint=ENDPOINT
+                        URI of SPARQL endpoint to query
+  -o OUTPUT, --output=OUTPUT
+                        URI or filename of RDF resource for output (default
+                        stdout).Specify '-'to use stdout.
+  -t QUERY_TYPE, --type=QUERY_TYPE
+                        Type of query output: SELECT (variable bindings,
+                        CONSTRUCT (RDF) or ASK (status)
+  -v, --verbose         display verbose output
+```
+
+
 # Example queries
 
 The directory "examples" contains some sample files containing queries and prefix declarations that can be used with the following commands.
