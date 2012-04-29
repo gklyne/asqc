@@ -48,6 +48,7 @@ Currently, RDF data is supported as RDF/XML only, and SPARQL SELECT query result
 This information is displayed by "asq --help":
 
 ```
+Usage:
   asq [options] [query]
   asq --help      for an options summary
   asq --examples  to display the path containing example queries

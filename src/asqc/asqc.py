@@ -372,9 +372,10 @@ def parseCommandArgs(argv):
     """
     # create a parser for the command line options
     parser = optparse.OptionParser(
-                usage=("%prog [options] [query]\n"+
-                       "%prog --help      for an options summary\n"+
-                       "%prog --examples  to display the path containing example queries"),
+                usage=("\n"+
+                       "  %prog [options] [query]\n"+
+                       "  %prog --help      for an options summary\n"+
+                       "  %prog --examples  to display the path containing example queries"),
                 description="A sparql query client, designed to be used as a filter in a command pieline. "+
                             "Pipelined data can be RDF or query variable binding sets, depending on the options used.",
                 version="%prog "+asqc_settings.VERSION)
