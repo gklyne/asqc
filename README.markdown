@@ -41,6 +41,7 @@ Right now, this is pretty much it.  For a usage summary:
 
 See also the examples described below.
 
+Currently, RDF data is supported as RDF/XML only, and SPARQL SELECT query results as JSON.  Support for other formats is on the TODO list.
 
 # Example queries
 
@@ -96,9 +97,5 @@ Notes:
 * These queries work in part because BBC backstage makes extensive use of the DBpedia ontologies
 * It is possible that this particular result could have ben obtained from BBC backstage alone, as it replicates information from DBpedia, but the example has been constructed to use information from the different endpoints.
 * Joining queries in this way when sending queries to different endpoints is *not* scalable in the current implementation of ASQ: all available results are retrieved from both services, then joined in the ASQ client.  (I am thinking about possible ways to use the results from one query to limit what comes from the next.  When querying RDF resources, results from one query are used directly to constrain the results of the next query.)
-
-
-
-
 
 
