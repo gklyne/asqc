@@ -33,6 +33,15 @@ If older versions of rdflib and/or other utilities are installed, it may be nece
 
     sudo pip install --upgrade asqc
 
+# Documentation
+
+Right now, this is pretty much it.  For a usage summary:
+
+    asq --help
+
+See also the examples described below.
+
+
 # Example queries
 
 The directory "examples" contains some sample files containing queries and prefix declarations that can be used with the following commands.
