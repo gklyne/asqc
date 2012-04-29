@@ -1,6 +1,6 @@
-This project is for a simple command-line SPARQL query client.
+ASQC provides a simple command-line SPARQL query client.
 
-The plan is that the client can be used in Unix-style pipeline operations to perform sequences of query operations that pass information as RDF (from CONSTRUCT queries) or variable bindings (from SELECT queries).
+The intent is that this client can be used in Unix-style pipeline operations to perform sequences of query operations that pass information as RDF (from CONSTRUCT queries) or variable bindings (from SELECT queries).
 
 # Installation
 
@@ -38,6 +38,8 @@ The directory "examples" contains some sample files containing queries and prefi
 To obtain the full path name of the examples directory, enter:
 
     asq --examples
+
+Commands below for running the examples assume this is the current working directory.
 
 ## Query Dbpedia endpoint
 
@@ -80,7 +82,7 @@ or, equivalently, piping bindings from one asq command straight to the next:
 
 Notes:
 * The query to the BBC backstage endpoint can take a little time to complete (about 30 seconds)
-* These queries work in part because BC backstage makes extensive use of the Dbpedia ontologies
+* These queries work in part because BBC backstage makes extensive use of the Dbpedia ontologies
 * It is possible that this particular result could have ben obtained from BBC backstage alone, as it replicates information from Dbpedia, but the example has been constructed to use information from the different endpoints.
 * Joining queries in this way when sending queries to different endpoints is *not* scalable n the current implementation of ASQ: all available results are retrieved from both services, then joined inthe ASQ client.  (I am thinking about possible ways to use the results from one query to limit what comes from the next.  When querying RDF resources, results from one query are used directly to constrain the results of the next query.)
 
