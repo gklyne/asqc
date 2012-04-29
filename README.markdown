@@ -12,6 +12,8 @@ Installation is from Python Package Index (PyPI).
 
 ### Temporary installation
 
+This option assumes that the virtualenv package (http://pypi.python.org/pypi/virtualenv) has been installed.
+
 Select working directory, then:
 
     virtualenv testenv
