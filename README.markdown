@@ -43,9 +43,9 @@ To obtain the full path name of the examples directory, enter:
 
 Commands below for running the examples assume this is the current working directory.
 
-## Query Dbpedia endpoint
+## Query DBpedia endpoint
 
-This example comes from the Dbpedia front page.  It returns a list of musicians born in Berlin, by sending a SPARQL query to the Dbpedia SPARQL emndpoint.
+This example comes from the DBpedia front page.  It returns a list of musicians born in Berlin, by sending a SPARQL query to the DBpedia SPARQL emndpoint.
 
     asq -e http://dbpedia.org/sparql -p dbpedia.prefixes -q dbpedia-musicians.sparql 
 
@@ -65,7 +65,7 @@ A similar query using CONSTRUCT returns the information as an RDF graph:
 
 This example shows how ASQ can be used to fetch results from different sources and combine the results.  SELECT query results from one query can be used to constrain the results returned by a second query.
 
-This example uses Dbpedia and BBC Backstage SPARQL endpoints to create a list of actors from Japan who appear in BBC television programmes:
+This example uses DBpedia and BBC Backstage SPARQL endpoints to create a list of actors from Japan who appear in BBC television programmes:
 
     asq -e http://dbpedia.org/sparql -p dbpedia.prefixes \
       -q dbpedia-people-from-japan.sparql \
@@ -84,9 +84,9 @@ or, equivalently, piping bindings from one asq command straight to the next:
 
 Notes:
 * The query to the BBC backstage endpoint can take a little time to complete (about 30 seconds)
-* These queries work in part because BBC backstage makes extensive use of the Dbpedia ontologies
-* It is possible that this particular result could have ben obtained from BBC backstage alone, as it replicates information from Dbpedia, but the example has been constructed to use information from the different endpoints.
-* Joining queries in this way when sending queries to different endpoints is *not* scalable n the current implementation of ASQ: all available results are retrieved from both services, then joined inthe ASQ client.  (I am thinking about possible ways to use the results from one query to limit what comes from the next.  When querying RDF resources, results from one query are used directly to constrain the results of the next query.)
+* These queries work in part because BBC backstage makes extensive use of the DBpedia ontologies
+* It is possible that this particular result could have ben obtained from BBC backstage alone, as it replicates information from DBpedia, but the example has been constructed to use information from the different endpoints.
+* Joining queries in this way when sending queries to different endpoints is *not* scalable in the current implementation of ASQ: all available results are retrieved from both services, then joined in the ASQ client.  (I am thinking about possible ways to use the results from one query to limit what comes from the next.  When querying RDF resources, results from one query are used directly to constrain the results of the next query.)
 
 
 
