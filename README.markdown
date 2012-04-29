@@ -65,7 +65,7 @@ A similar query using CONSTRUCT returns the information as an RDF graph:
 
 This example shows how ASQ can be used to fetch results from different sources and combine the results.  SELECT query results from one query can be used to constrain the results returned by a second query.
 
-This example uses Dbpedia and BBC Backstage SPARQL endpoints to create a list of Actors from Japan who appear in BBC television programmes:
+This example uses Dbpedia and BBC Backstage SPARQL endpoints to create a list of actors from Japan who appear in BBC television programmes:
 
     asq -e http://dbpedia.org/sparql -p dbpedia.prefixes \
       -q dbpedia-people-from-japan.sparql \
