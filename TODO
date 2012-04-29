@@ -1,10 +1,11 @@
 == asqc TODO ==
 
-Packaging for easy installation
+Improve error handling, especially for query syntax (option to check query syntax?)
 Refactor StdinContext and StdoutContext to MiscLib; update packaging to include MiscLib as extra?
 Alternative RDF formats
 Alternative binding formats
-(Think about preprocessing query with bindings - needs SPARQL tokenizer to do properly)
+(Think about preprocessing query with bindings - may need SPARQL tokenizer to do properly)
+
 
 == Notes ==
 
@@ -26,6 +27,5 @@ python setup.py build
 python setup.py install
 
 python setup.py register
-python setup.py sdist
-python setup.py upload
+python setup.py sdist upload
 
