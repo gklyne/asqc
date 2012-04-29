@@ -92,7 +92,8 @@ class TestAsqc(unittest.TestCase):
 
     def testGetQuery(self):
         class testOptions(object):
-            query = None
+            verbose = False
+            query   = None
         options = testOptions()
         options.query = "test.sparql"
         assert asqc.getQuery(options, ["test"]) == "SELECT * WHERE { ?s ?p ?o }\n"
@@ -104,7 +105,8 @@ class TestAsqc(unittest.TestCase):
 
     def testGetPrefixes(self):
         class testOptions(object):
-            prefix = None
+            verbose = False
+            prefix  = None
         options = testOptions()
         # named file or resource
         f = open("test.prefixes", "r")
@@ -123,6 +125,7 @@ class TestAsqc(unittest.TestCase):
 
     def testGetBindings(self):
         class testOptions(object):
+            verbose  = False
             rdf_data = None
             bindings = None
             endpoint = None
@@ -199,6 +202,7 @@ class TestAsqc(unittest.TestCase):
 
     def testGetRdfData(self):
         class testOptions(object):
+            verbose  = False
             rdf_data = None
         testRdfData = """<?xml version="1.0" encoding="UTF-8"?>
             <rdf:RDF
@@ -232,6 +236,7 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataSelect(self):
         class testOptions(object):
+            verbose  = False
             rdf_data = ["test1.rdf", "test2.rdf"]
             prefix   = None
         options  = testOptions()
@@ -279,6 +284,7 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataAsk(self):
         class testOptions(object):
+            verbose  = False
             rdf_data = ["test1.rdf", "test2.rdf"]
             prefix   = None
         options  = testOptions()
@@ -310,6 +316,7 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataConstruct(self):
         class testOptions(object):
+            verbose  = False
             rdf_data = ["test1.rdf", "test2.rdf"]
             prefix   = None
         options  = testOptions()
@@ -347,6 +354,7 @@ class TestAsqc(unittest.TestCase):
         # containing the contents of files test1.rdf and test2.rdf.
         # (I use Jena Fuseki with default settings for testing.)
         class testOptions(object):
+            verbose  = False
             endpoint = "http://localhost:3030/ds/query"
             prefix   = None
         options  = testOptions()
@@ -392,6 +400,7 @@ class TestAsqc(unittest.TestCase):
         # containing the contents of files test1.rdf and test2.rdf.
         # (I use Jena Fuseki with default settings for testing.)
         class testOptions(object):
+            verbose  = False
             endpoint = "http://localhost:3030/ds/query"
             prefix   = None
         options  = testOptions()
@@ -411,6 +420,7 @@ class TestAsqc(unittest.TestCase):
         # containing the contents of files test1.rdf and test2.rdf.
         # (I use Jena Fuseki with default settings for testing.)
         class testOptions(object):
+            verbose  = False
             endpoint = "http://localhost:3030/ds/query"
             prefix   = None
         options  = testOptions()
@@ -429,6 +439,7 @@ class TestAsqc(unittest.TestCase):
 
     def testOutputResultJSON(self):
         class testOptions(object):
+            verbose  = False
             output = None
         options  = testOptions()
         result = (
@@ -453,6 +464,7 @@ class TestAsqc(unittest.TestCase):
 
     def testOutputResultRDFXML(self):
         class testOptions(object):
+            verbose  = False
             output = None
         options  = testOptions()
         result = rdflib.Graph()
