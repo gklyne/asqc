@@ -28,6 +28,9 @@ from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
 import asqc
 
+# Logging object
+log = logging.getLogger(__name__)
+
 # Base directory for file access tests in this module
 testbase = os.path.dirname(__file__)
 
@@ -200,7 +203,7 @@ class TestAsqc(unittest.TestCase):
         checkBindings(bindings)
         return
 
-    def testGetRdfData(self):
+    def testGetRdfXmlData(self):
         class testOptions(object):
             verbose        = False
             rdf_data       = None
@@ -230,6 +233,37 @@ class TestAsqc(unittest.TestCase):
         #
         options = testOptions()
         options.rdf_data = ["nosuchfile.rdf"]
+        rdfgraph = asqc.getRdfData(options)
+        assert rdfgraph == None
+        #
+        return
+
+    def testGetRdfN3Data(self):
+        class testOptions(object):
+            verbose        = False
+            rdf_data       = None
+            format_rdf_in  = "N3"
+        testRdfData = """
+            @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+            _:s rdfs:label "Example" ;
+                rdfs:comment "This is really just an example." .
+            """
+        #
+        options = testOptions()
+        inpstr   = StringIO.StringIO(testRdfData)
+        with SwitchStdin(inpstr):
+            rdfgraph = asqc.getRdfData(options)
+            assert len(rdfgraph) == 2
+        #
+        options = testOptions()
+        options.rdf_data = ["test.n3"]
+        rdfgraph = asqc.getRdfData(options)
+        assert len(rdfgraph) == 2
+        #
+        options = testOptions()
+        options.rdf_data = ["nosuchfile.n3"]
         rdfgraph = asqc.getRdfData(options)
         assert rdfgraph == None
         #
@@ -486,6 +520,26 @@ class TestAsqc(unittest.TestCase):
         assert """<rdf:Description rdf:about="http://example.org/test#s1">""" in testtxt
         return
 
+    def testOutputResultRDFN3(self):
+        class testOptions(object):
+            verbose        = False
+            output         = None
+            format_rdf_out = "N3"
+        options  = testOptions()
+        result = rdflib.Graph()
+        result.add(
+            ( rdflib.URIRef("http://example.org/test#s1")
+            , rdflib.URIRef("http://example.org/test#p1")
+            , rdflib.URIRef("http://example.org/test#o1")
+            ) )
+        teststr = StringIO.StringIO()
+        with SwitchStdout(teststr):
+            asqc.outputResult("asqc", options, result)
+            testtxt = teststr.getvalue()
+        log.debug("testOutputResultRDFN3 \n"+testtxt)
+        assert """ns1:s1 ns1:p1 ns1:o1 .""" in testtxt
+        return
+
     # Sentinel/placeholder tests
 
     def testUnits(self):
@@ -521,12 +575,14 @@ def getTestSuite(select="unit"):
             , "testGetQuery"
             , "testGetPrefixes"
             , "testGetBindings"
-            , "testGetRdfData"
+            , "testGetRdfXmlData"
+            , "testGetRdfN3Data"
             , "testQueryRdfDataSelect"
             , "testQueryRdfDataAsk"
             , "testQueryRdfDataConstruct"
             , "testOutputResultJSON"
             , "testOutputResultRDFXML"
+            , "testOutputResultRDFN3"
             ],
         "component":
             [ "testComponents"
