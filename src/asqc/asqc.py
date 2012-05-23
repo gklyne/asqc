@@ -17,6 +17,7 @@ import optparse
 import logging
 
 from SparqlHttpClient import SparqlHttpClient
+from SparqlXmlResults import writeResultsXML
 
 from StdoutContext import SwitchStdout
 from StdinContext  import SwitchStdin
@@ -74,6 +75,26 @@ log = logging.getLogger(__name__)
 import __init__
 class asqc_settings(object):
     VERSION = __init__.__version__
+
+# Helper function for templated SPARQL results formatting and parsing
+
+def formatBindings(template, bindings):
+    """
+    Return bindings formatted with supplied template
+    """
+    formatdict = {}
+    for (var, val) in bindings.iteritems():
+        formatdict[var]         = val["value"]
+        if val["type"] == "bnode":
+            vf = "_:%(value)s"
+        elif val["type"] == "uri":
+            vf = "<%(value)s>"
+        elif val["type"] == "literal":
+            vf = '"%(value)s"'
+        elif val["type"] == "typed-literal":
+            vf = '"%(value)s"^^<%(datatype)s>'
+        formatdict[var+"_repr"] = vf%val
+    return template%formatdict
 
 # Helper functions for JSON formatting and parsing
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
@@ -275,17 +296,21 @@ def getRdfData(options):
 def queryRdfData(progname, options, prefixes, query, bindings):
     """
     Submit query against RDF data.
-    Result is tuple of status and dictionary/list structure suitable for JSON encoding.
+    Result is tuple of status and dictionary/list structure suitable for JSON encoding,
+    or an rdflib.graph value.
     """
     rdfgraph = getRdfData(options)
     if not rdfgraph:
         print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
         return (2, None)
     query = prefixes + query
-    resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
-    #for b in bindings['results']['bindings']:
-    #    resp = rdfgraph.query(query, initBindings=b)
-    #    resps.append(resp)
+    try:
+        resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
+    except AssertionError, e:
+        print "Query failed (query syntax problem?)"
+        print "Submitted query:"
+        print query
+        return (2, None)
     res = { "head": {} }
     if resps[0].type == 'ASK':
         res["boolean"] = any([ r.askAnswer for r in resps ])
@@ -368,8 +393,15 @@ def outputResult(progname, options, result):
     elif isinstance(result, str):
         outstr.write(result)
     else:
-        outstr.write(json.dumps(result))
-        outstr.write("\n")
+        if options.format_var_out == "JSON" or options.format_var_out == None:
+            outstr.write(json.dumps(result))
+            outstr.write("\n")
+        elif options.format_var_out == "XML":
+            writeResultsXML(outstr, result)
+        else:
+            for bindings in result["results"]["bindings"]:
+                formattedrow = formatBindings(options.format_var_out, bindings)
+                outstr.write(formattedrow)
     return
 
 def run(configbase, options, args):

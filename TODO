@@ -1,7 +1,6 @@
 == asqc TODO ==
 
-Alternative RDF formats
-Alternative binding formats
+Alternative binding formats (XML and templated output done.  XML input TODO)
 URI template expansion based on query results
 Improve error handling, especially for query syntax (option to check query syntax?)
 Refactor StdinContext and StdoutContext to MiscLib; update packaging to include MiscLib as extra?

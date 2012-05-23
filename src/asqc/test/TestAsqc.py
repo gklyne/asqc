@@ -501,6 +501,61 @@ class TestAsqc(unittest.TestCase):
         assert """"s": {"type": "uri", "value": "http://example.org/test#s1"}""" in testtxt
         return
 
+    def testOutputResultXML(self):
+        class testOptions(object):
+            verbose        = False
+            output         = None
+            format_var_out = "XML"
+        options  = testOptions()
+        result = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': { 'type': "bnode", 'value': "nodeid" }
+                  , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+                  , 'o': { 'type': "literal", 'value': "literal string" }
+                  }
+                ]
+              }
+            })
+        teststr = StringIO.StringIO()
+        with SwitchStdout(teststr):
+            asqc.outputResult("asqc", options, result)
+            testtxt = teststr.getvalue()
+        log.debug("testOutputResultXML \n"+testtxt)
+        assert """<binding name="s">""" in testtxt
+        assert """<bnode>nodeid</bnode>""" in testtxt
+        assert """<binding name="p">""" in testtxt
+        assert """<uri>http://example.org/test#p1</uri>""" in testtxt
+        assert """<binding name="o">""" in testtxt
+        assert """<literal>literal string</literal>""" in testtxt
+        return
+
+    def testOutputResultTemplate(self):
+        class testOptions(object):
+            verbose        = False
+            output         = None
+            format_var_out = "s: %(s_repr)s p: <%(p)s> o: %(o_repr)s ."
+        options  = testOptions()
+        result = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': { 'type': "bnode", 'value': "nodeid" }
+                  , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+                  , 'o': { 'type': "literal", 'value': "literal string" }
+                  }
+                ]
+              }
+            })
+        teststr = StringIO.StringIO()
+        with SwitchStdout(teststr):
+            asqc.outputResult("asqc", options, result)
+            testtxt = teststr.getvalue()
+        log.debug("testOutputResultTemplate \n"+testtxt)
+        assert """s: _:nodeid p: <http://example.org/test#p1> o: "literal string" .""" in testtxt
+        return
+
     def testOutputResultRDFXML(self):
         class testOptions(object):
             verbose        = False
@@ -581,6 +636,8 @@ def getTestSuite(select="unit"):
             , "testQueryRdfDataAsk"
             , "testQueryRdfDataConstruct"
             , "testOutputResultJSON"
+            , "testOutputResultXML"
+            , "testOutputResultTemplate"
             , "testOutputResultRDFXML"
             , "testOutputResultRDFN3"
             ],
