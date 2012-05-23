@@ -31,6 +31,43 @@ rdflib.plugin.register(
     'sparql', rdflib.query.Result,
     'rdfextras.sparql.query', 'SPARQLQueryResult')
 
+# Regisater serializers (needed?)
+#rdflib.plugin.register('n3', Serializer,
+#         'rdflib.plugins.serializers.n3','N3Serializer')
+#rdflib.plugin.register('turtle', Serializer,
+#         'rdflib.plugins.serializers.turtle', 'TurtleSerializer')
+#rdflib.plugin.register('nt', Serializer,
+#         'rdflib.plugins.serializers.nt', 'NTSerializer')
+#rdflib.plugin.register('xml', Serializer,
+#         'rdflib.plugins.serializers.rdfxml', 'XMLSerializer')
+#rdflib.plugin.register('pretty-xml', Serializer,
+#         'rdflib.plugins.serializers.rdfxml', 'PrettyXMLSerializer')
+#rdflib.plugin.register('json-ld', Serializer,
+#         'rdflib.plugins.serializers.rdfxml', 'XMLSerializer')
+#plugin.register('json-ld', Serializer,
+#         'rdfextras.serializers.jsonld', 'JsonLDSerializer')
+
+# Type codes and mapping for RDF and query variable p[arsing and serializing
+
+RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD"]
+VARTYP = ["JSON","CSV","XML"]
+
+RDFTYPPARSERMAP = (
+    { "RDFXML": "xml"
+    , "N3":     "n3"
+    , "TURTLE": "n3"
+    , "NT":     "nt"
+    , "JSONLD": "jsonld"
+    })
+
+RDFTYPSERIALIZERMAP = (
+    { "RDFXML": "pretty-xml"
+    , "N3":     "n3"
+    , "TURTLE": "turtle"
+    , "NT":     "nt"
+    , "JSONLD": "jsonld"
+    })
+
 # Logging object
 log = logging.getLogger(__name__)
 
@@ -74,7 +111,10 @@ def parseJsonTerm(d):
     
     input is like:
       { 'type': 'uri', 'value': 'http://famegame.com/2006/01/username' }
+      { 'type': 'bnode', 'value': '123abc456' }
       { 'type': 'literal', 'value': 'drewp' }
+      { 'type': 'literal', 'value': 'drewp', xml:lang="en" }
+      { 'type': 'typed-literal', 'value': '123', datatype="http://(xsd)#int" }
     """
     
     t = d['type']
@@ -100,7 +140,7 @@ def parseJsonBindings(bindings):
         newbindings.append(outRow)
     return newbindings
 
-# Helper functions to form join(?) of mutiple binding sets
+# Helper functions to form join of mutiple binding sets
 
 def joinBinding(result_binding, constraint_binding):
     for k in result_binding:
@@ -224,8 +264,10 @@ def getRdfData(options):
             rdftext = sys.stdin.read()
         else:
             rdftext = retrieveUri(r)
+        rdfformatdefault = RDFTYPPARSERMAP[RDFTYP[0]]
+        rdfformatselect  = RDFTYPPARSERMAP.get(options.format_rdf_in, rdfformatdefault)
         try:
-            rdfgraph.parse(data=rdftext)
+            rdfgraph.parse(data=rdftext, format=rdfformatselect)
         except Exception, e:
             return None
     return rdfgraph
@@ -282,9 +324,14 @@ def querySparqlEndpoint(progname, options, prefixes, query, bindings):
         print "== resulttype: "+resulttype
         print "== resultjson: "+str(resultjson)
     sc = SparqlHttpClient(endpointuri=options.endpoint)
-    ((status, reason), result) = sc.doQueryPOST(query, accept=resulttype, JSON=resultjson)
+    ((status, reason), result) = sc.doQueryPOST(query, accept=resulttype, JSON=False)
     if status != 200:
         assert False, "Error from SPARQL query request: %i %s"%(status, reason)
+    if options.verbose:
+        print "== Query response =="
+        print result
+    if resultjson:
+        result = json.loads(result)
     status = 1
     if querytype == "SELECT":
         result['results']['bindings'] = parseJsonBindings(result['results']['bindings'])
@@ -315,7 +362,9 @@ def outputResult(progname, options, result):
     if options.output and options.output != "-":
         print "Output to other than stdout not implemented"
     if isinstance(result, rdflib.Graph):
-        result.serialize(destination=outstr, format="pretty-xml", base=None)
+        rdfformatdefault = RDFTYPSERIALIZERMAP[RDFTYP[0]]
+        rdfformatselect  = RDFTYPSERIALIZERMAP.get(options.format_rdf_out, rdfformatdefault)
+        result.serialize(destination=outstr, format=rdfformatselect, base=None)
     elif isinstance(result, str):
         outstr.write(result)
     else:
@@ -384,15 +433,6 @@ def parseCommandArgs(argv):
                       dest="examples", 
                       default=False,
                       help="display path of examples directory and exit")
-    parser.add_option("-q", "--query",
-                      dest="query", 
-                      help="URI or filename of resource containing query to execute. "+
-                           "If not present, query must be supplied as command line argument.")
-    parser.add_option("-p", "--prefix",
-                      dest="prefix",
-                      default="~/.asqc-prefixes",
-                      help="URI or filename of resource containing query prefixes "+
-                           "(default %default)")
     parser.add_option("-b", "--bindings",
                       dest="bindings",
                       default=None,
@@ -400,6 +440,37 @@ def parseCommandArgs(argv):
                            "(default none). "+
                            "Specify '-' to use stdin. "+
                            "This option works for SELECT queries only when accessing a SPARQL endpoint.")
+    parser.add_option("-e", "--endpoint",
+                      dest="endpoint",
+                      default=None,
+                      help="URI of SPARQL endpoint to query.")
+    parser.add_option("-f", "--format",
+                      dest="format",
+                      default=None,
+                      help="Format for input and/or output: RDFXML/N3/NT/TURTLE/JSONLD/JSON/CSV/template.  "+
+                           "XML, N3, NT, TURTLE, JSONLD apply to RDF data, others apply to query variable bindings.  "+
+                           "Multiple comma-separated values may be specified; "+
+                           "they are applied to RDF or variable bindings as appropriate.  "+
+                           "'template' is a python formatting template with '%(var)s' for query variable 'var'.  "+
+                           "If two values are given for RDF or variable binding data, "+
+                           "they are applied to input and output respectively.  "+
+                           "Thus: RDFXML,JSON = RDF/XML and JSON result bindings; "+
+                           "RDFXML,N3 = RDF/XML input and Turtle output; etc.")
+    parser.add_option("-o", "--output",
+                      dest="output",
+                      default='-',
+                      help="URI or filename of RDF resource for output "+
+                           "(default stdout)."+
+                           "Specify '-'to use stdout.")
+    parser.add_option("-p", "--prefix",
+                      dest="prefix",
+                      default="~/.asqc-prefixes",
+                      help="URI or filename of resource containing query prefixes "+
+                           "(default %default)")
+    parser.add_option("-q", "--query",
+                      dest="query", 
+                      help="URI or filename of resource containing query to execute. "+
+                           "If not present, query must be supplied as command line argument.")
     parser.add_option("-r", "--rdf-input",
                       action="append",
                       dest="rdf_data",
@@ -408,29 +479,63 @@ def parseCommandArgs(argv):
                            "(default stdin or none). "+
                            "May be repeated to merge multiple input resources. "+
                            "Specify '-' to use stdin.")
-    parser.add_option("-e", "--endpoint",
-                      dest="endpoint",
-                      default=None,
-                      help="URI of SPARQL endpoint to query ")
-    parser.add_option("-o", "--output",
-                      dest="output",
-                      default='-',
-                      help="URI or filename of RDF resource for output "+
-                           "(default stdout)."+
-                           "Specify '-'to use stdout.")
-    parser.add_option("-t", "--type",
-                      dest="query_type",
-                      default=None,
-                      help="Type of query output: SELECT (variable bindings, CONSTRUCT (RDF) or ASK (status)")
     parser.add_option("-v", "--verbose",
                       action="store_true", 
                       dest="verbose", 
                       default=False,
                       help="display verbose output")
+    parser.add_option("--query-type",
+                      dest="query_type",
+                      default=None,
+                      help="Type of query output: SELECT (variable bindings, CONSTRUCT (RDF) or ASK (status).  "+
+                            "May be used when system cannot tell the kind of result by analyzing the query itself.  "+
+                            "(Currently not used)")
+    parser.add_option("--format-rdf-in",
+                      dest="format_rdf_in",
+                      default=None,
+                      help="Format for RDF input data: RDFXML/N3/NT/TURTLE/JSONLD.")
+    parser.add_option("--format-rdf-out",
+                      dest="format_rdf_out",
+                      default=None,
+                      help="Format for RDF output data: RDFXML/N3/NT/TURTLE/JSONLD.")
+    parser.add_option("--format-var-in",
+                      dest="format_var_in",
+                      default=None,
+                      help="Format for query variable binding input data: JSON/CSV.")
+    parser.add_option("--format-var-out",
+                      dest="format_var_out",
+                      default=None,
+                      help="Format for query variable binding output data: JSON/CSV/template.")
     # parse command line now
     (options, args) = parser.parse_args(argv)
     if len(args) < 1: parser.error("No command present")
     if len(args) > 2: parser.error("Too many arguments present: "+repr(args))
+    def pick_next_format_option(s,kws):
+        t = s
+        for k in kws:
+            if s.upper().startswith(k):
+                s = s[len(k):]
+                if s == "":           return (k, "")
+                if s.startswith(','): return (k, s[1:])
+                break
+        return (t, "")
+    if options.format:
+        fs = options.format
+        while fs:
+            fn,fs = pick_next_format_option(fs, RDFTYP+VARTYP)
+            if fn in RDFTYP:
+                if not options.format_rdf_in:
+                    options.format_rdf_in = fn
+                options.format_rdf_out = fn
+            else:
+                if not options.format_var_in and fn in VARTYP:
+                    options.format_var_in = fn
+                options.format_var_out = fn
+    if options.verbose:
+        print "RDF graph input format:    "+repr(options.format_rdf_in)
+        print "RDF graph output format:   "+repr(options.format_rdf_out)
+        print "Var binding input format:  "+repr(options.format_var_in)
+        print "Var binding output format: "+repr(options.format_var_out)
     return (options, args)
 
 def runCommand(configbase, argv):

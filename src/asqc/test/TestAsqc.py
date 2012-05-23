@@ -202,8 +202,9 @@ class TestAsqc(unittest.TestCase):
 
     def testGetRdfData(self):
         class testOptions(object):
-            verbose  = False
-            rdf_data = None
+            verbose        = False
+            rdf_data       = None
+            format_rdf_in  = None
         testRdfData = """<?xml version="1.0" encoding="UTF-8"?>
             <rdf:RDF
               xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
@@ -236,9 +237,10 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataSelect(self):
         class testOptions(object):
-            verbose  = False
-            rdf_data = ["test1.rdf", "test2.rdf"]
-            prefix   = None
+            verbose        = False
+            rdf_data       = ["test1.rdf", "test2.rdf"]
+            prefix         = None
+            format_rdf_in  = None
         options  = testOptions()
         prefixes = asqc.getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
         bindings = (
@@ -284,9 +286,10 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataAsk(self):
         class testOptions(object):
-            verbose  = False
-            rdf_data = ["test1.rdf", "test2.rdf"]
-            prefix   = None
+            verbose        = False
+            rdf_data       = ["test1.rdf", "test2.rdf"]
+            prefix         = None
+            format_rdf_in  = None
         options  = testOptions()
         prefixes = asqc.getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
         bindings = (
@@ -316,9 +319,10 @@ class TestAsqc(unittest.TestCase):
 
     def testQueryRdfDataConstruct(self):
         class testOptions(object):
-            verbose  = False
-            rdf_data = ["test1.rdf", "test2.rdf"]
-            prefix   = None
+            verbose        = False
+            rdf_data       = ["test1.rdf", "test2.rdf"]
+            prefix         = None
+            format_rdf_in  = None
         options  = testOptions()
         prefixes = asqc.getPrefixes(options)+"PREFIX ex: <http://example.org/test#>\n"
         bindings = (
@@ -439,8 +443,9 @@ class TestAsqc(unittest.TestCase):
 
     def testOutputResultJSON(self):
         class testOptions(object):
-            verbose  = False
-            output = None
+            verbose        = False
+            output         = None
+            format_var_out = None
         options  = testOptions()
         result = (
             { "head":    { "vars": ["s", "p", "o"] }
@@ -464,8 +469,9 @@ class TestAsqc(unittest.TestCase):
 
     def testOutputResultRDFXML(self):
         class testOptions(object):
-            verbose  = False
-            output = None
+            verbose        = False
+            output         = None
+            format_rdf_out = None
         options  = testOptions()
         result = rdflib.Graph()
         result.add(

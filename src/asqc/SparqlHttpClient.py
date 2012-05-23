@@ -58,7 +58,7 @@ class SparqlHttpClient(object):
         responsedata = response.read()
         hc.close()
         ###print "---- responsedata "+responsedata
-        if JSON:
+        if status == 200 and JSON:
             responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 
@@ -80,7 +80,7 @@ class SparqlHttpClient(object):
         responsedata = response.read()
         hc.close()
         ###print "---- responsedata "+responsedata
-        if JSON:
+        if status == 200 and JSON:
             responsedata = json.loads(responsedata)
         return ((status, reason), responsedata)
 

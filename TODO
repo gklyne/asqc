@@ -1,9 +1,10 @@
 == asqc TODO ==
 
-Improve error handling, especially for query syntax (option to check query syntax?)
-Refactor StdinContext and StdoutContext to MiscLib; update packaging to include MiscLib as extra?
 Alternative RDF formats
 Alternative binding formats
+URI template expansion based on query results
+Improve error handling, especially for query syntax (option to check query syntax?)
+Refactor StdinContext and StdoutContext to MiscLib; update packaging to include MiscLib as extra?
 (Think about preprocessing query with bindings - may need SPARQL tokenizer to do properly)
 
 
@@ -29,3 +30,52 @@ python setup.py install
 python setup.py register
 python setup.py sdist upload
 
+...
+
+SPARQL XML results...
+
+http://blogs.ecs.soton.ac.uk/enakting/2011/01/28/fast-sparql-xml-results-parser-in-python/
+https://github.com/oucs/humfrey/blob/master/humfrey/streaming/srx.py
+
+...
+
+
+== Options ==
+
+Usage: asq [options] [query]
+asq --help  for option summary
+
+A sparql query client, designed to be used as a filter in a command pipeline.
+Pipelined data can be RDF or query variable binding sets, depending on the
+options used.
+
+Options:
+  --version             show program's version number and exit
+  -b BINDINGS, --bindings=BINDINGS
+                        URI or filename of resource containing incoming query
+                        variable bindings (default none). Specify '-' to use
+                        stdin. This option works for SELECT queries only when
+                        accessing a SPARQL endpoint.
+  -e ENDPOINT, --endpoint=ENDPOINT
+                        URI of SPARQL endpoint to query
+  -f FORMAT, --format=FORMAT
+                        input and output data formats ...
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output=OUTPUT
+                        URI or filename of RDF resource for output (default
+                        stdout).Specify '-'to use stdout.
+  -p PREFIX, --prefix=PREFIX
+                        URI or filename of resource containing query prefixes
+                        (default ~/.asqc-prefixes)
+  -q QUERY, --query=QUERY
+                        URI or filename of resource containing query to
+                        execute. If not present, query must be supplied as
+                        command line argument.
+  -r RDF_DATA, --rdf-input=RDF_DATA
+                        URI or filename of RDF resource to query (default
+                        stdin or none). May be repeated to merge multiple
+                        input resources. Specify '-' to use stdin.
+  -t QUERY_TYPE, --type=QUERY_TYPE
+                        Type of query output: SELECT (variable bindings,
+                        CONSTRUCT (RDF) or ASK (status)
+  -v, --verbose         display verbose output
