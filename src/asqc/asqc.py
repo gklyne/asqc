@@ -50,7 +50,7 @@ rdflib.plugin.register(
 
 # Type codes and mapping for RDF and query variable p[arsing and serializing
 
-RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD"]
+RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD","RDFA"]
 VARTYP = ["JSON","CSV","XML"]
 
 RDFTYPPARSERMAP = (
@@ -59,6 +59,7 @@ RDFTYPPARSERMAP = (
     , "TURTLE": "n3"
     , "NT":     "nt"
     , "JSONLD": "jsonld"
+    , "RDFA":   "rdfa"
     })
 
 RDFTYPSERIALIZERMAP = (
@@ -479,8 +480,9 @@ def parseCommandArgs(argv):
     parser.add_option("-f", "--format",
                       dest="format",
                       default=None,
-                      help="Format for input and/or output: RDFXML/N3/NT/TURTLE/JSONLD/JSON/CSV/template.  "+
-                           "XML, N3, NT, TURTLE, JSONLD apply to RDF data, others apply to query variable bindings.  "+
+                      help="Format for input and/or output: RDFXML/N3/NT/TURTLE/JSONLD/RDFA/JSON/CSV/template.  "+
+                           "XML, N3, NT, TURTLE, JSONLD, RDFA apply to RDF data, "+
+                           "others apply to query variable bindings.  "+
                            "Multiple comma-separated values may be specified; "+
                            "they are applied to RDF or variable bindings as appropriate.  "+
                            "'template' is a python formatting template with '%(var)s' for query variable 'var'.  "+
@@ -525,7 +527,7 @@ def parseCommandArgs(argv):
     parser.add_option("--format-rdf-in",
                       dest="format_rdf_in",
                       default=None,
-                      help="Format for RDF input data: RDFXML/N3/NT/TURTLE/JSONLD.")
+                      help="Format for RDF input data: RDFXML/N3/NT/TURTLE/JSONLD/RDFA.")
     parser.add_option("--format-rdf-out",
                       dest="format_rdf_out",
                       default=None,
@@ -558,7 +560,8 @@ def parseCommandArgs(argv):
             if fn in RDFTYP:
                 if not options.format_rdf_in:
                     options.format_rdf_in = fn
-                options.format_rdf_out = fn
+                if fn in RDFTYPSERIALIZERMAP:
+                    options.format_rdf_out = fn
             else:
                 if not options.format_var_in and fn in VARTYP:
                     options.format_var_in = fn

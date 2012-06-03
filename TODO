@@ -38,6 +38,15 @@ https://github.com/oucs/humfrey/blob/master/humfrey/streaming/srx.py
 
 ...
 
+== Packaging ==
+
+Local:
+python setup.py build
+python setup.py install
+
+Upload to PyPI:
+python setup.py sdist upload
+
 
 == Options ==
 
