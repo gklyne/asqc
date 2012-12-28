@@ -97,6 +97,34 @@ def formatBindings(template, bindings):
         formatdict[var+"_repr"] = vf%val
     return template%formatdict
 
+# Helper function for CSV formatting query result from JSON
+
+def char_escape(c):
+    if c == '"': return '""'
+    if ord(c) >= 128: return r"\u" + "%04x"%ord(c)
+    return c
+
+def termToCSV(result): 
+    if result == None: 
+        return None
+    resval = result['value']
+    restyp = result['type']
+    if restyp == "uri":
+        return "<" + resval + ">"
+    if restyp == "bnode":
+        return "_:" + resval
+    # strval  = '"' + resval.replace('"', '""') + '"'
+    strval  = '"' + "".join([char_escape(c) for c in resval]) + '"'
+    strlang = result.get('xml:lang', None)
+    if restyp == "literal":
+        if strlang:
+            return strval + '@' + strlang
+        else:
+            return strval
+    if restyp == "typed-literal":
+        return strval + '^^' + result['datatype']
+    raise rdflib.query.ResultException('Unknown term type: %s (%s)'%(term, type(term)))
+
 # Helper functions for JSON formatting and parsing
 # Mostly copied from rdflib SPARQL code (rdfextras/sparql/results/jsonresults)
 
@@ -401,7 +429,13 @@ def outputResult(progname, options, result):
         elif options.format_var_out == "XML":
             writeResultsXML(outstr, result)
         elif options.format_var_out == "CSV":
-            outstr.write("CSV output not yet supported")
+            qvars = result["head"]["vars"]
+            outstr.write(", ".join(qvars))
+            outstr.write("\n")
+            for bindings in result["results"]["bindings"]:
+                vals = [ termToCSV(bindings[v]) for v in qvars ]
+                outstr.write(", ".join(vals))
+                outstr.write("\n")
         else:
             for bindings in result["results"]["bindings"]:
                 formattedrow = formatBindings(options.format_var_out, bindings)

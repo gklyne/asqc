@@ -535,6 +535,33 @@ class TestAsqc(unittest.TestCase):
         assert """<literal>literal string</literal>""" in testtxt
         return
 
+    def testOutputResultCSV(self):
+        class testOptions(object):
+            verbose        = False
+            output         = None
+            format_var_out = "CSV"
+        options  = testOptions()
+        result = (
+            { "head":    { "vars": ["s", "p", "o"] }
+            , "results": 
+              { "bindings": 
+                [ { 's': { 'type': "bnode", 'value': "nodeid" }
+                  , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+                  , 'o': { 'type': "literal", 'value': """literal '"' '\u00e9' string""" }
+                  }
+                ]
+              }
+            })
+        teststr = StringIO.StringIO()
+        with SwitchStdout(teststr):
+            asqc.outputResult("asqc", options, result)
+            testtxt = teststr.getvalue()
+        log.debug("testOutputResultCSV \n"+testtxt)
+        log.debug("testOutputResultCSV \n"+repr(testtxt))
+        assert """s, p, o""" in testtxt
+        assert r'''_:nodeid, <http://example.org/test#p1>, "literal '""' '\u00e9' string"''' in testtxt
+        return
+
     def testOutputResultTemplate(self):
         class testOptions(object):
             verbose        = False
@@ -641,6 +668,7 @@ def getTestSuite(select="unit"):
             , "testQueryRdfDataConstruct"
             , "testOutputResultJSON"
             , "testOutputResultXML"
+            , "testOutputResultCSV"
             , "testOutputResultTemplate"
             , "testOutputResultRDFXML"
             , "testOutputResultRDFN3"
