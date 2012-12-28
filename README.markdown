@@ -10,6 +10,8 @@ Installation is from Python Package Index (PyPI).
 
 ## MacOS / Linux
 
+NOTE: at the time of writing (Dec 2012), rdflib pulls in a version of pyparsing that is incompatible with Python 2.x.  The commands below manually install an older version before installing asqc.
+
 ### Temporary installation
 
 This option assumes that the virtualenv package (http://pypi.python.org/pypi/virtualenv) has been installed.
@@ -18,6 +20,7 @@ Select working directory, then:
 
     virtualenv testenv
     source testenv/bin/activate
+    pip install pyparsing==1.5.6
     pip install asqc
 
 When finished, from the same directory:
@@ -27,6 +30,7 @@ When finished, from the same directory:
 
 ### System-wide installation (needs root privileges)
 
+    sudo pip install pyparsing==1.5.6
     sudo pip install asqc
 
 If older versions of rdflib and/or other utilities are installed, it may be necessary to force an upgrade, thus:
