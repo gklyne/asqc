@@ -48,12 +48,12 @@ Currently, RDF data is supported as RDF/XML only, and SPARQL SELECT query result
 This information is displayed by "asq --help":
 
 ```
-Usage:
-  asq [options] [query]
-  asq --help      for an options summary
-  asq --examples  to display the path containing example queries
+Usage: 
+  asqc.py [options] [query]
+  asqc.py --help      for an options summary
+  asqc.py --examples  to display the path containing example queries
 
-A sparql query client, designed to be used as a filter in a command pieline.
+A sparql query client, designed to be used as a filter in a command pipeline.
 Pipelined data can be RDF or query variable binding sets, depending on the
 options used.
 
@@ -61,31 +61,58 @@ Options:
   --version             show program's version number and exit
   -h, --help            show this help message and exit
   --examples            display path of examples directory and exit
-  -q QUERY, --query=QUERY
-                        URI or filename of resource containing query to
-                        execute. If not present, query must be supplied as
-                        command line argument.
-  -p PREFIX, --prefix=PREFIX
-                        URI or filename of resource containing query prefixes
-                        (default ~/.asqc-prefixes)
   -b BINDINGS, --bindings=BINDINGS
                         URI or filename of resource containing incoming query
                         variable bindings (default none). Specify '-' to use
                         stdin. This option works for SELECT queries only when
                         accessing a SPARQL endpoint.
+  -e ENDPOINT, --endpoint=ENDPOINT
+                        URI of SPARQL endpoint to query.
+  -f FORMAT, --format=FORMAT
+                        Format for input and/or output:
+                        RDFXML/N3/NT/TURTLE/JSONLD/RDFA/JSON/CSV/template.
+                        XML, N3, NT, TURTLE, JSONLD, RDFA apply to RDF data,
+                        others apply to query variable bindings.  Multiple
+                        comma-separated values may be specified; they are
+                        applied to RDF or variable bindings as appropriate.
+                        'template' is a python formatting template with
+                        '%(var)s' for query variable 'var'.  If two values are
+                        given for RDF or variable binding data, they are
+                        applied to input and output respectively.  Thus:
+                        RDFXML,JSON = RDF/XML and JSON result bindings;
+                        RDFXML,N3 = RDF/XML input and Turtle output; etc.
+  -o OUTPUT, --output=OUTPUT
+                        URI or filename of RDF resource for output (default
+                        stdout).Specify '-'to use stdout.
+  -p PREFIX, --prefix=PREFIX
+                        URI or filename of resource containing query prefixes
+                        (default ~/.asqc-prefixes)
+  -q QUERY, --query=QUERY
+                        URI or filename of resource containing query to
+                        execute. If not present, query must be supplied as
+                        command line argument.
   -r RDF_DATA, --rdf-input=RDF_DATA
                         URI or filename of RDF resource to query (default
                         stdin or none). May be repeated to merge multiple
                         input resources. Specify '-' to use stdin.
-  -e ENDPOINT, --endpoint=ENDPOINT
-                        URI of SPARQL endpoint to query
-  -o OUTPUT, --output=OUTPUT
-                        URI or filename of RDF resource for output (default
-                        stdout).Specify '-'to use stdout.
-  -t QUERY_TYPE, --type=QUERY_TYPE
-                        Type of query output: SELECT (variable bindings,
-                        CONSTRUCT (RDF) or ASK (status)
   -v, --verbose         display verbose output
+  --query-type=QUERY_TYPE
+                        Type of query output: SELECT (variable bindings,
+                        CONSTRUCT (RDF) or ASK (status).  May be used when
+                        system cannot tell the kind of result by analyzing the
+                        query itself.  (Currently not used)
+  --format-rdf-in=FORMAT_RDF_IN
+                        Format for RDF input data:
+                        RDFXML/N3/NT/TURTLE/JSONLD/RDFA.
+  --format-rdf-out=FORMAT_RDF_OUT
+                        Format for RDF output data:
+                        RDFXML/N3/NT/TURTLE/JSONLD.
+  --format-var-in=FORMAT_VAR_IN
+                        Format for query variable binding input data:
+                        JSON/CSV.
+  --format-var-out=FORMAT_VAR_OUT
+                        Format for query variable binding output data:
+                        JSON/CSV/template.
 ```
 
 
@@ -103,7 +130,7 @@ Commands below for running the examples assume this is the current working direc
 
 This example comes from the DBpedia front page.  It returns a list of musicians born in Berlin, by sending a SPARQL query to the DBpedia SPARQL emndpoint.
 
-    asq -e http://dbpedia.org/sparql -p dbpedia.prefixes -q dbpedia-musicians.sparql 
+    cd test
 
 ## Query SKOS ontology
 

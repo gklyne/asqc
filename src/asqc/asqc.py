@@ -246,7 +246,8 @@ def getPrefixes(options):
         """
     #    PREFIX xml:        <http://www.w3.org/XML/1998/namespace>
     configbase = os.path.expanduser("~")
-    prefixUri  = options.prefix or resolveUri(".asqc-prefixes", "file://", configbase)
+    prefixUri  = options.prefix or resolveUri(
+        ".asqc-prefixes", "file://", configbase)
     prefixes   = retrieveUri(prefixUri)
     return prefixes or defaultPrefixes
 
@@ -399,6 +400,8 @@ def outputResult(progname, options, result):
             outstr.write("\n")
         elif options.format_var_out == "XML":
             writeResultsXML(outstr, result)
+        elif options.format_var_out == "CSV":
+            outstr.write("CSV output not yet supported")
         else:
             for bindings in result["results"]["bindings"]:
                 formattedrow = formatBindings(options.format_var_out, bindings)
@@ -458,7 +461,7 @@ def parseCommandArgs(argv):
                        "  %prog [options] [query]\n"+
                        "  %prog --help      for an options summary\n"+
                        "  %prog --examples  to display the path containing example queries"),
-                description="A sparql query client, designed to be used as a filter in a command pieline. "+
+                description="A sparql query client, designed to be used as a filter in a command pipeline. "+
                             "Pipelined data can be RDF or query variable binding sets, depending on the options used.",
                 version="%prog "+asqc_settings.VERSION)
     parser.add_option("--examples",

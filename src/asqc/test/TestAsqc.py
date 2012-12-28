@@ -55,7 +55,7 @@ class TestAsqc(unittest.TestCase):
     def testRetrieveUri(self):
         assert asqc.retrieveUri("test.txt") == "Test data\n"
         assert asqc.retrieveUri("file://"+urllib.pathname2url(os.getcwd())+"/test.txt") == "Test data\n"
-        assert "<title>IANA &mdash; Example domains</title>" in asqc.retrieveUri("http://example.org/nosuchdata"), \
+        assert "<title>Example Domain</title>" in asqc.retrieveUri("http://example.org/nosuchdata"), \
                asqc.retrieveUri("http://example.org/nosuchdata")
         assert asqc.retrieveUri("http://nohost.example.org/nosuchdata") == None, \
                asqc.retrieveUri("http://nohost.example.org/nosuchdata")
@@ -437,6 +437,8 @@ class TestAsqc(unittest.TestCase):
         # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
         # containing the contents of files test1.rdf and test2.rdf.
         # (I use Jena Fuseki with default settings for testing.)
+        #   ./fuseki-server --update --mem /ds
+        # Then browse to localhost:3030 to upload RDF files
         class testOptions(object):
             verbose  = False
             endpoint = "http://localhost:3030/ds/query"
@@ -457,6 +459,8 @@ class TestAsqc(unittest.TestCase):
         # This test assumes a SPARQL endpoint running at http://localhost:3030/ds/query 
         # containing the contents of files test1.rdf and test2.rdf.
         # (I use Jena Fuseki with default settings for testing.)
+        #   ./fuseki-server --update --mem /ds
+        # Then browse to localhost:3030 to upload RDF files
         class testOptions(object):
             verbose  = False
             endpoint = "http://localhost:3030/ds/query"
