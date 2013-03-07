@@ -15,6 +15,7 @@ import json
 import re
 import optparse
 import logging
+import traceback
 
 from SparqlHttpClient import SparqlHttpClient
 from SparqlXmlResults import writeResultsXML
@@ -314,12 +315,16 @@ def getRdfData(options):
         if r == "-":
             rdftext = sys.stdin.read()
         else:
+            log.debug("Reading RDF from %s"%(r))
             rdftext = retrieveUri(r)
         rdfformatdefault = RDFTYPPARSERMAP[RDFTYP[0]]
         rdfformatselect  = RDFTYPPARSERMAP.get(options.format_rdf_in, rdfformatdefault)
         try:
+            log.debug("Parsing RDF format %s"%(rdfformatselect))
             rdfgraph.parse(data=rdftext, format=rdfformatselect)
         except Exception, e:
+            log.debug("RDF Parse failed: %s"%(repr(e)))
+            log.debug("traceback:        %s"%(traceback.format_exc()))
             return None
     return rdfgraph
 
@@ -510,6 +515,11 @@ def parseCommandArgs(argv):
                            "(default none). "+
                            "Specify '-' to use stdin. "+
                            "This option works for SELECT queries only when accessing a SPARQL endpoint.")
+    parser.add_option("--debug",
+                      action="store_true", 
+                      dest="debug", 
+                      default=False,
+                      help="run with full debug output enabled")
     parser.add_option("-e", "--endpoint",
                       dest="endpoint",
                       default=None,
@@ -621,6 +631,8 @@ def runCommand(configbase, argv):
     """
     log.debug("runCommand: configbase %s, argv %s"%(configbase, repr(argv)))
     (options, args) = parseCommandArgs(argv)
+    if not options or options.debug:
+        logging.basicConfig(level=logging.DEBUG)
     status = 2
     if options:
         status  = run(configbase, options, args)
