@@ -96,7 +96,7 @@ def formatBindings(template, bindings):
         elif val["type"] == "typed-literal":
             vf = '"%(value)s"^^<%(datatype)s>'
         formatdict[var+"_repr"] = vf%val
-    return template%formatdict
+    return template.decode(encoding='string_escape')%formatdict
 
 # Helper function for CSV formatting query result from JSON
 
@@ -312,16 +312,18 @@ def getRdfData(options):
         options.rdf_data = ['-']
     rdfgraph = rdflib.Graph()
     for r in options.rdf_data:
+        base = ""
         if r == "-":
             rdftext = sys.stdin.read()
         else:
             log.debug("Reading RDF from %s"%(r))
             rdftext = retrieveUri(r)
+            base    = r
         rdfformatdefault = RDFTYPPARSERMAP[RDFTYP[0]]
         rdfformatselect  = RDFTYPPARSERMAP.get(options.format_rdf_in, rdfformatdefault)
         try:
             log.debug("Parsing RDF format %s"%(rdfformatselect))
-            rdfgraph.parse(data=rdftext, format=rdfformatselect)
+            rdfgraph.parse(data=rdftext, format=rdfformatselect, publicID=base)
         except Exception, e:
             log.debug("RDF Parse failed: %s"%(repr(e)))
             log.debug("traceback:        %s"%(traceback.format_exc()))
@@ -443,7 +445,9 @@ def outputResult(progname, options, result):
                 outstr.write("\n")
         else:
             for bindings in result["results"]["bindings"]:
+                #log.debug("options.format_var_out '%s'"%(repr(options.format_var_out)))
                 formattedrow = formatBindings(options.format_var_out, bindings)
+                #log.debug("formattedrow '%s'"%(repr(formattedrow)))
                 outstr.write(formattedrow)
     return
 
@@ -475,7 +479,7 @@ def run(configbase, options, args):
         print prefixes
         print "== Query =="
         print query
-        print "== Bindings =="
+        print "== Initial bindings =="
         print bindings
     if options.endpoint:
         (status,result) = querySparqlEndpoint(progname, options, prefixes, query, bindings)
