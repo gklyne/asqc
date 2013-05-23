@@ -26,12 +26,12 @@ from StdinContext  import SwitchStdin
 import rdflib
 
 # Set up to use SPARQL
-rdflib.plugin.register(
-    'sparql', rdflib.query.Processor,
-    'rdfextras.sparql.processor', 'Processor')
-rdflib.plugin.register(
-    'sparql', rdflib.query.Result,
-    'rdfextras.sparql.query', 'SPARQLQueryResult')
+# rdflib.plugin.register(
+#     'sparql', rdflib.query.Processor,
+#     'rdfextras.sparql.processor', 'Processor')
+# rdflib.plugin.register(
+#     'sparql', rdflib.query.Result,
+#     'rdfextras.sparql.query', 'SPARQLQueryResult')
 
 # Regisater serializers (needed?)
 #rdflib.plugin.register('n3', Serializer,
@@ -154,7 +154,7 @@ def bindingToJSON(binding):
     res={}
     for var in binding: 
         t = termToJSON(binding[var])
-        if t != None: res[var] = t
+        if t != None: res[str(var)] = t
     return res
 
 def parseJsonTerm(d):
@@ -216,8 +216,8 @@ def joinBindingsToJSON(result_bindings, constraint_bindings):
 
 def resolveUri(uriref, base, path=""):
     """
-    Resolve a URI reference against a supplied basae URI and path.
-    (The path is a local file system path, and may need convertting to use URI conventions)
+    Resolve a URI reference against a supplied base URI and path.
+    (The path is a local file system path, and may need converting to use URI conventions)
     """
     upath = urllib.pathname2url(path)
     if os.path.isdir(path) and not upath.endswith('/'):
@@ -226,6 +226,7 @@ def resolveUri(uriref, base, path=""):
 
 def retrieveUri(uriref):
     uri = resolveUri(uriref, "file://", os.getcwd())
+    log.debug("retrievUri: %s"%(uri))
     request  = urllib2.Request(uri)
     try:
         response = urllib2.urlopen(request)
@@ -277,6 +278,9 @@ def getPrefixes(options):
     configbase = os.path.expanduser("~")
     prefixUri  = options.prefix or resolveUri(
         ".asqc-prefixes", "file://", configbase)
+    if prefixUri.startswith("~"):
+        prefixUri = configbase+prefixUri[1:]
+    log.debug("Prefix URI %s"%(prefixUri))
     prefixes   = retrieveUri(prefixUri)
     return prefixes or defaultPrefixes
 
@@ -338,9 +342,11 @@ def queryRdfData(progname, options, prefixes, query, bindings):
     """
     rdfgraph = getRdfData(options)
     if not rdfgraph:
-        print "%s: Could not read RDF data (use -r <file> or supply RDF on stdin)"%progname
+        print "%s: Could not read RDF data, or syntax error in input"%progname
+        print "     Use -r <file> or supply RDF on stdin; specify input format if not RDF/XML"
         return (2, None)
     query = prefixes + query
+    log.debug("queryRdfData query:\n%s\n"%(query))
     try:
         resps = [rdfgraph.query(query, initBindings=b) for b in bindings['results']['bindings']]
     except AssertionError, e:
@@ -440,7 +446,7 @@ def outputResult(progname, options, result):
             outstr.write(", ".join(qvars))
             outstr.write("\n")
             for bindings in result["results"]["bindings"]:
-                vals = [ termToCSV(bindings[v]) for v in qvars ]
+                vals = [ termToCSV(bindings[str(v)]) for v in qvars ]
                 outstr.write(", ".join(vals))
                 outstr.write("\n")
         else:
@@ -467,6 +473,7 @@ def run(configbase, options, args):
         print "%s: Could not determine query prefixes"%progname
         print "Run '%s --help' for more information"%progname
         return 2
+    ## log.debug("Prefixes:\n%s\n"%(prefixes))
     bindings = getBindings(options)
     if not bindings:
         print "%s: Could not determine incoming variable bindings"%progname

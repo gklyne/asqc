@@ -269,6 +269,17 @@ class TestAsqc(unittest.TestCase):
         #
         return
 
+    def matchBinding(self, expect, found):
+        for k in expect:
+            if k not in found or expect[k] != found[k]: return False
+        return True
+
+    def assertInResult(self, binding, result, msg):
+        for b in result["results"]["bindings"]:
+            if self.matchBinding(binding, b): return
+        assert False, "Expected binding not found: %s"%(msg)
+        return
+
     def testQueryRdfDataSelect(self):
         class testOptions(object):
             verbose        = False
@@ -295,23 +306,39 @@ class TestAsqc(unittest.TestCase):
         query = "SELECT * WHERE { ?s ?p ?o }"
         (status,result) = asqc.queryRdfData("test", options, prefixes, query, bindings)
         assert status == 0, "queryRdfData SELECT with data status"
+        log.debug("Query result: %s"%(repr(result["results"]["bindings"])))
+        log.debug("- s: %s"%(result["results"]["bindings"][0]['s']))
+        log.debug("- p: %s"%(result["results"]["bindings"][0]['p']))
+        log.debug("- o: %s"%(result["results"]["bindings"][0]['o']))
         assert len(result["results"]["bindings"]) == 4, "queryRdfData result count"
-        assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-               , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
-               , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
-               } in result["results"]["bindings"], "queryRdfData result 1"
-        assert { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
-               , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
-               , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
-               } in result["results"]["bindings"], "queryRdfData result 2"
-        assert { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
-               , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
-               , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
-               } in result["results"]["bindings"], "queryRdfData result 3"
-        assert { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
-               , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
-               , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
-               } in result["results"]["bindings"], "queryRdfData result 4"
+        self.assertInResult(
+                { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+                , 'p': { 'type': "uri", 'value': "http://example.org/test#p1" }
+                , 'o': { 'type': "uri", 'value': "http://example.org/test#o1" }
+                },
+                result, "queryRdfData result 1"
+            )
+        self.assertInResult(
+                { 's': { 'type': "uri", 'value': "http://example.org/test#s1" }
+                , 'p': { 'type': "uri", 'value': "http://example.org/test#p2" }
+                , 'o': { 'type': "uri", 'value': "http://example.org/test#o2" }
+                },
+                result, "queryRdfData result 2"
+            )
+        self.assertInResult(
+                { 's': { 'type': "uri", 'value': "http://example.org/test#s2" }
+                , 'p': { 'type': "uri", 'value': "http://example.org/test#p4" }
+                , 'o': { 'type': "uri", 'value': "http://example.org/test#o4" }
+                },
+                result, "queryRdfData result 3"
+            )
+        self.assertInResult(
+                { 's': { 'type': "uri", 'value': "http://example.org/test#s3" }
+                , 'p': { 'type': "uri", 'value': "http://example.org/test#p5" }
+                , 'o': { 'type': "uri", 'value': "http://example.org/test#o5" }
+                },
+                result, "queryRdfData result 4"
+            )
         query = "SELECT * WHERE { <http://example.org/nonesuch> ?p ?o }"
         (status,result) = asqc.queryRdfData("test", options, prefixes, query, bindings)
         assert status == 1, "queryRdfData SELECT with no data status"
