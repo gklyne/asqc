@@ -10,8 +10,6 @@ Installation is from Python Package Index (PyPI).
 
 ## MacOS / Linux
 
-NOTE: at the time of writing (Dec 2012), rdflib pulls in a version of pyparsing that is incompatible with Python 2.x.  The commands below manually install an older version before installing asqc.
-
 ### Temporary installation
 
 This option assumes that the virtualenv package (http://pypi.python.org/pypi/virtualenv) has been installed.
@@ -20,7 +18,6 @@ Select working directory, then:
 
     virtualenv testenv
     source testenv/bin/activate
-    pip install pyparsing==1.5.6
     pip install asqc
 
 When finished, from the same directory:
@@ -30,7 +27,6 @@ When finished, from the same directory:
 
 ### System-wide installation (needs root privileges)
 
-    sudo pip install pyparsing==1.5.6
     sudo pip install asqc
 
 If older versions of rdflib and/or other utilities are installed, it may be necessary to force an upgrade, thus:
@@ -52,9 +48,9 @@ Currently, RDF data is supported as RDF/XML only, and SPARQL SELECT query result
 This information is displayed by "asq --help":
 
     Usage: 
-      asqc.py [options] [query]
-      asqc.py --help      for an options summary
-      asqc.py --examples  to display the path containing example queries
+      asq [options] [query]
+      asq --help      for an options summary
+      asq --examples  to display the path containing example queries
 
     A sparql query client, designed to be used as a filter in a command pipeline.
     Pipelined data can be RDF or query variable binding sets, depending on the
