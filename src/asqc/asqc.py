@@ -51,7 +51,7 @@ import rdflib
 
 # Type codes and mapping for RDF and query variable p[arsing and serializing
 
-RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD","RDFA"]
+RDFTYP = ["RDFXML","N3","TURTLE","NT","JSONLD","RDFA","HTML5"]
 VARTYP = ["JSON","CSV","XML"]
 
 RDFTYPPARSERMAP = (
@@ -61,6 +61,7 @@ RDFTYPPARSERMAP = (
     , "NT":     "nt"
     , "JSONLD": "jsonld"
     , "RDFA":   "rdfa"
+    , "HTML5":  "text/html"
     })
 
 RDFTYPSERIALIZERMAP = (
