@@ -542,8 +542,9 @@ def parseCommandArgs(argv):
     parser.add_option("-f", "--format",
                       dest="format",
                       default=None,
-                      help="Format for input and/or output: RDFXML/N3/NT/TURTLE/JSONLD/RDFA/JSON/CSV/template.  "+
-                           "XML, N3, NT, TURTLE, JSONLD, RDFA apply to RDF data, "+
+                      help="Format for input and/or output:  "+
+                           "RDFXML, N3, NT, TURTLE, JSONLD, RDFA, HTML5, JSON, CSV or template.  "+
+                           "XML, N3, NT, TURTLE, JSONLD, RDFA, HTML5 apply to RDF data, "+
                            "others apply to query variable bindings.  "+
                            "Multiple comma-separated values may be specified; "+
                            "they are applied to RDF or variable bindings as appropriate.  "+
@@ -589,19 +590,22 @@ def parseCommandArgs(argv):
     parser.add_option("--format-rdf-in",
                       dest="format_rdf_in",
                       default=None,
-                      help="Format for RDF input data: RDFXML/N3/NT/TURTLE/JSONLD/RDFA.")
+                      help="Format for RDF input data: RDFXML, N3, NT, TURTLE, JSONLD, RDFA or HTML5.  "+
+                           "RDFA indicates RDFa embedded in XML (or XHTML);  "+
+                           "HTML5 indicates RDFa embedded in HTML5.")
     parser.add_option("--format-rdf-out",
                       dest="format_rdf_out",
                       default=None,
-                      help="Format for RDF output data: RDFXML/N3/NT/TURTLE/JSONLD.")
+                      help="Format for RDF output data: RDFXML, N3, NT, TURTLE or JSONLD.")
     parser.add_option("--format-var-in",
                       dest="format_var_in",
                       default=None,
-                      help="Format for query variable binding input data: JSON/CSV.")
+                      help="Format for query variable binding input data: JSON or CSV.")
     parser.add_option("--format-var-out",
                       dest="format_var_out",
                       default=None,
-                      help="Format for query variable binding output data: JSON/CSV/template.")
+                      help="Format for query variable binding output data: JSON, CSV or template.  "+
+                           "The template option is a Python format string applied to a dictionary of query result variables.")
     # parse command line now
     (options, args) = parser.parse_args(argv)
     if len(args) < 1: parser.error("No command present")
