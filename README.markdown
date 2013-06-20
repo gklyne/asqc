@@ -197,4 +197,12 @@ Notes:
 * It is possible that this particular result could have ben obtained from BBC backstage alone, as it replicates information from DBpedia, but the example has been constructed to use information from the different endpoints.
 * Joining queries in this way when sending queries to different endpoints is *not* scalable in the current implementation of ASQ: all available results are retrieved from both services, then joined in the ASQ client.  (I am thinking about possible ways to use the results from one query to limit what comes from the next.  When querying RDF resources, results from one query are used directly to constrain the results of the next query.)
 
+# Update history
 
+* 0.1.1: Initial packaging
+* 0.1.2: Add examples and extended README
+* 0.1.3: Add support for alternative input and output formats
+* 0.1.4: Add support for CSV output format for query result bindings
+* 0.1.5: Add support for --debug option and diagnostics for query syntax error
+* 0.1.6: Update to work with rdflib 4.0.1 and neew SPARQL 1.1 library
+* 0.1.7: Support parsing of RDFa from HTML5
