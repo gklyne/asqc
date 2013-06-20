@@ -33,7 +33,7 @@ import rdflib
 #     'sparql', rdflib.query.Result,
 #     'rdfextras.sparql.query', 'SPARQLQueryResult')
 
-# Regisater serializers (needed?)
+# Register serializers (needed?)
 #rdflib.plugin.register('n3', Serializer,
 #         'rdflib.plugins.serializers.n3','N3Serializer')
 #rdflib.plugin.register('turtle', Serializer,
@@ -61,7 +61,7 @@ RDFTYPPARSERMAP = (
     , "NT":     "nt"
     , "JSONLD": "jsonld"
     , "RDFA":   "rdfa"
-    , "HTML5":  "text/html"
+    , "HTML5":  "rdfa+html"
     })
 
 RDFTYPSERIALIZERMAP = (
@@ -328,7 +328,10 @@ def getRdfData(options):
         rdfformatselect  = RDFTYPPARSERMAP.get(options.format_rdf_in, rdfformatdefault)
         try:
             log.debug("Parsing RDF format %s"%(rdfformatselect))
-            rdfgraph.parse(data=rdftext, format=rdfformatselect, publicID=base)
+            if rdfformatselect == "rdfa+html":
+                rdfgraph.parse(data=rdftext, format="rdfa", media_type="text/html", publicID=base)
+            else:
+                rdfgraph.parse(data=rdftext, format=rdfformatselect, publicID=base)
         except Exception, e:
             log.debug("RDF Parse failed: %s"%(repr(e)))
             log.debug("traceback:        %s"%(traceback.format_exc()))
