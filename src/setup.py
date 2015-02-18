@@ -144,7 +144,7 @@ setup(
         "Programming Language :: Python",
         ],
     zip_safe=False,
-    install_requires=["rdflib >= 4.0.1"],
+    install_requires=["rdflib == 4.0.1", "rdflib-sparql == 0.2"],
     entry_points = {
         'console_scripts': [
             'asq = asqc.asqc:runMain',
