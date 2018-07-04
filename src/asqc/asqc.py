@@ -132,7 +132,7 @@ def termToCSV(result):
 
 def termToJSON(term): 
     if isinstance(term, rdflib.URIRef): 
-        return { 'type': 'uri', 'value': str(term) }
+        return { 'type': 'uri', 'value': unicode(term) }
     elif isinstance(term, rdflib.Literal):
         if term.datatype!=None:
             return { 'type': 'typed-literal', 
