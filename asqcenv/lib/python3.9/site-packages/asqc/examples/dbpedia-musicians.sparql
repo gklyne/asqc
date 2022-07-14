@@ -1,0 +1,8 @@
+SELECT ?name ?birth ?description ?person WHERE {
+     ?person dbo:birthPlace :Berlin .
+     ?person <http://purl.org/dc/terms/subject> <http://dbpedia.org/resource/Category:German_musicians> .
+     ?person dbo:birthDate ?birth .
+     ?person foaf:name ?name .
+     ?person rdfs:comment ?description .
+     FILTER (LANG(?description) = 'en') .
+     }

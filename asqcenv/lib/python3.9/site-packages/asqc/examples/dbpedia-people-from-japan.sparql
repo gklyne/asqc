@@ -1,0 +1,5 @@
+# query to: http://dbpedia.org/sparql
+#PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+#PREFIX dbo: <http://dbpedia.org/ontology/>
+SELECT * WHERE { ?person rdf:type dbo:Person ; dbo:birthPlace <http://dbpedia.org/resource/Japan> }
+

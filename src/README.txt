@@ -3,7 +3,7 @@ ASQC provides a simple command-line SPARQL query client.
 The intent is that this client can be used in Unix-style pipeline operations to perform sequences of query operations that pass information as RDF (from CONSTRUCT queries) or variable bindings (from SELECT queries).
 
 
-== Installation ==
+== Installation (Python 2 deprecated -- see below) ==
 
 Assumes Python 2.7 installed; not yet tested with other versions.  Also not yet tested on systems other than Linux or MacOS.
 
@@ -12,6 +12,17 @@ Installation is from the Python Package Index (PyPI - http://pypi.python.org/pyp
     pip install asqc
 
 See the project page at github for more details (https://github.com/gklyne/asqc).
+
+
+== Updated installation for Python 3 ==
+
+(work in progress - testing on macbook)
+
+    python -m venv --copies asqcenv
+    python -m pip install --upgrade pip
+    python -m pip install --upgrade certifi
+    python -m pip install --upgrade setuptools==58
+    python -m pip install asqc #???
 
 
 == Documentation ==
