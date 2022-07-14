@@ -451,7 +451,7 @@ def outputResult(progname, options, result):
             outstr.write(", ".join(qvars))
             outstr.write("\n")
             for bindings in result["results"]["bindings"]:
-                print("---- bindings: "+repr(bindings))
+                ### print("---- bindings: "+repr(bindings))
                 vals = [ termToCSV(bindings.get(str(v),{'type': 'literal', 'value': ''})) for v in qvars ]
                 outstr.write(", ".join(vals))
                 outstr.write("\n")
